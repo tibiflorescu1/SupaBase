@@ -13,12 +13,36 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
     const [selectedPrintId, setSelectedPrintId] = useState<string>(data.materialePrint[0]?.id || '');
     const [selectedLaminareId, setSelectedLaminareId] = useState<string>(data.materialeLaminare[0]?.id || '');
     const [printCuAlb, setPrintCuAlb] = useState<boolean>(false);
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [selectedProducer, setSelectedProducer] = useState<string>('');
 
     const vehicul = useMemo(() => data.vehicule.find(v => v.id === selectedVehiculId), [selectedVehiculId, data.vehicule]);
     const acoperire = useMemo(() => vehicul?.acoperiri.find(a => a.id === selectedAcoperireId), [selectedAcoperireId, vehicul]);
     const materialPrint = useMemo(() => data.materialePrint.find(m => m.id === selectedPrintId), [selectedPrintId, data.materialePrint]);
     const materialLaminare = useMemo(() => data.materialeLaminare.find(m => m.id === selectedLaminareId), [selectedLaminareId, data.materialeLaminare]);
 
+    // Filter vehicles based on category and producer
+    const filteredVehicles = useMemo(() => {
+        return data.vehicule.filter(vehicle => {
+            const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
+            const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
+            return categoryMatch && producerMatch;
+        });
+    }, [data.vehicule, selectedCategory, selectedProducer]);
+
+    // Get unique producers for filter dropdown
+    const uniqueProducers = useMemo(() => {
+        const producers = selectedCategory === '' 
+            ? data.vehicule.map(v => v.producator)
+            : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator);
+        return [...new Set(producers)].sort();
+    }, [data.vehicule, selectedCategory]);
+
+    // Get category name helper
+    const getCategoryName = (categoryId: string) => {
+        const category = data.categorii.find(cat => cat.id === categoryId);
+        return category ? category.nume : 'Necunoscută';
+    };
     useEffect(() => {
         if (!data.materialePrint.some(m => m.id === selectedPrintId)) {
             setSelectedPrintId(data.materialePrint[0]?.id || '');
@@ -31,9 +55,25 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
         }
     }, [data.materialeLaminare, selectedLaminareId]);
 
+    // Reset vehicle selection when filters change
+    useEffect(() => {
+        if (selectedVehiculId && !filteredVehicles.some(v => v.id === selectedVehiculId)) {
+            setSelectedVehiculId('');
+            setSelectedAcoperireId('');
+            setSelectedOptiuni([]);
+            setPrintCuAlb(false);
+        }
+    }, [filteredVehicles, selectedVehiculId]);
+
+    // Reset producer filter when category changes
+    useEffect(() => {
+        if (selectedCategory && selectedProducer && !uniqueProducers.includes(selectedProducer)) {
+            setSelectedProducer('');
+        }
+    }, [selectedCategory, selectedProducer, uniqueProducers]);
     const handleVehiculChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const vehiculId = e.target.value;
-        const vehiculSelectat = data.vehicule.find(v => v.id === vehiculId);
+        const vehiculSelectat = filteredVehicles.find(v => v.id === vehiculId);
         setSelectedVehiculId(vehiculId);
         setSelectedAcoperireId(vehiculSelectat?.acoperiri[0]?.id || '');
         setSelectedOptiuni([]);
@@ -91,12 +131,52 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md space-y-6">
                  <h2 className="text-2xl font-bold text-gray-700 border-b pb-4">Calculator Ofertă</h2>
+                
+                {/* Filters */}
                 <div>
-                    <label className="font-semibold text-gray-700 block mb-2">1. Selectează modelul și acoperirea</label>
+                    <label className="font-semibold text-gray-700 block mb-2">Filtrare vehicule</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select 
+                            value={selectedCategory} 
+                            onChange={(e) => setSelectedCategory(e.target.value)} 
+                            className="w-full p-3 border rounded-lg bg-gray-50"
+                        >
+                            <option value="">Toate categoriile</option>
+                            {data.categorii.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.nume}</option>
+                            ))}
+                        </select>
+                        <select 
+                            value={selectedProducer} 
+                            onChange={(e) => setSelectedProducer(e.target.value)} 
+                            className="w-full p-3 border rounded-lg bg-gray-50"
+                        >
+                            <option value="">Toți producătorii</option>
+                            {uniqueProducers.map(producer => (
+                                <option key={producer} value={producer}>{producer}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {(selectedCategory || selectedProducer) && (
+                        <div className="mt-2 text-sm text-gray-600">
+                            Afișez {filteredVehicles.length} vehicule
+                            {selectedCategory && ` din categoria "${getCategoryName(selectedCategory)}"`}
+                            {selectedProducer && ` de la producătorul "${selectedProducer}"`}
+                        </div>
+                    )}
+                </div>
+
+                <div>
+                    <label className="font-semibold text-gray-700 block mb-2">1. Selectează vehiculul și acoperirea</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <select value={selectedVehiculId} onChange={handleVehiculChange} className="w-full p-3 border rounded-lg bg-gray-50">
                             <option value="" disabled>Alege un vehicul...</option>
-                            {data.vehicule.map(v => <option key={v.id} value={v.id}>{v.producator} {v.model}</option>)}
+                            {filteredVehicles.map(v => (
+                                <option key={v.id} value={v.id}>
+                                    {v.producator} {v.model}
+                                    {v.perioadaFabricatie && ` (${v.perioadaFabricatie})`}
+                                </option>
+                            ))}
                         </select>
                         {vehicul && (
                              <select value={selectedAcoperireId} onChange={e => setSelectedAcoperireId(e.target.value)} className="w-full p-3 border rounded-lg bg-gray-50">

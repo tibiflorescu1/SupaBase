@@ -25,6 +25,7 @@ export default function ModelsTab({
 }: ModelsTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedProducer, setSelectedProducer] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
   const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
@@ -45,7 +46,12 @@ export default function ModelsTab({
     vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
   ).filter(vehicle =>
     selectedCategory === '' || vehicle.categorieId === selectedCategory
+  ).filter(vehicle =>
+    selectedProducer === '' || vehicle.producator === selectedProducer
   );
+
+  // Get unique producers for filter dropdown
+  const uniqueProducers = [...new Set(data.vehicule.map(v => v.producator))].sort();
 
   const getCategoryName = (categoryId: string) => {
     const category = data.categorii.find(cat => cat.id === categoryId);
@@ -296,6 +302,18 @@ export default function ModelsTab({
           {data.categorii.map(category => (
             <option key={category.id} value={category.id}>
               {category.nume}
+            </option>
+          ))}
+        </select>
+        <select
+          value={selectedProducer}
+          onChange={(e) => setSelectedProducer(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">Toți producătorii</option>
+          {uniqueProducers.map(producer => (
+            <option key={producer} value={producer}>
+              {producer}
             </option>
           ))}
         </select>
