@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useMemo } from 'react';
 import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X } from 'lucide-react';
 import { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra, Fisier } from '../hooks/useSupabaseData';
 
@@ -44,23 +43,24 @@ export default function ModelsTab({
 
   const filteredVehicles = data.vehicule.filter(vehicle => {
     const searchMatch = searchTerm === '' || 
-      (vehicle.producator?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (vehicle.model?.toLowerCase().includes(searchTerm.toLowerCase()));
+      (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
     const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
     
     return searchMatch && categoryMatch && producerMatch;
-  });
+  }).filter(vehicle =>
+    vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
+  ).filter(vehicle =>
+    selectedCategory === '' || vehicle.categorieId === selectedCategory
+  ).filter(vehicle =>
+    selectedProducer === '' || vehicle.producator === selectedProducer
+  );
 
   // Get unique producers for filter dropdown
-  const uniqueProducers = useMemo(() => {
-    const producers = data.vehicule
-      .map(v => v.producator)
-      .filter(Boolean)
-      .filter(p => p.trim() !== '');
-    return [...new Set(producers)].sort();
-  }, [data.vehicule]);
+  const uniqueProducers = [...new Set(data.vehicule.map(v => v.producator))].sort();
 
   // Get category name helper
   const getCategoryName = (categoryId: string) => {
@@ -68,57 +68,6 @@ export default function ModelsTab({
     return category ? category.nume : 'Necunoscută';
   };
 
-  const fixUnknownCategories = async () => {
-    try {
-      setFixingCategories(true);
-      
-      // Find SSV/UTV category
-      const ssvCategory = data.categorii.find(cat => 
-        cat.nume.toLowerCase().includes('ssv') || 
-        cat.nume.toLowerCase().includes('utv')
-      );
-      
-      if (!ssvCategory) {
-        alert('Nu s-a găsit categoria SSV/UTV. Te rog să o creezi mai întâi.');
-        return;
-      }
-      
-      // Find vehicles with unknown categories
-      const vehiclesWithUnknownCategory = data.vehicule.filter(vehicle => 
-        !vehicle.categorieId || 
-        vehicle.categorieId === '' || 
-        !data.categorii.find(cat => cat.id === vehicle.categorieId)
-      );
-      
-      if (vehiclesWithUnknownCategory.length === 0) {
-        alert('Nu există vehicule cu categoria necunoscută.');
-        return;
-      }
-      
-      const confirmed = confirm(
-        `Vrei să muți ${vehiclesWithUnknownCategory.length} vehicule din categoria "Necunoscută" în categoria "${ssvCategory.nume}"?`
-      );
-      
-      if (!confirmed) return;
-      
-      // Update each vehicle
-      for (const vehicle of vehiclesWithUnknownCategory) {
-        await onSaveVehicul({
-          ...vehicle,
-          categorieId: ssvCategory.id
-        });
-      }
-      
-      alert(`${vehiclesWithUnknownCategory.length} vehicule au fost mutate cu succes în categoria "${ssvCategory.nume}".`);
-      onRefetch();
-      
-    } catch (error) {
-      console.error('Error fixing categories:', error);
-      alert('Eroare la actualizarea categoriilor');
-    } finally {
-      setFixingCategories(false);
-    }
-  };
   const downloadFile = (fisier: Fisier) => {
     const link = document.createElement('a');
     link.href = fisier.dataUrl;
