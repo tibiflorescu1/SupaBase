@@ -13,6 +13,7 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
     const [selectedPrintId, setSelectedPrintId] = useState<string>(data.materialePrint[0]?.id || '');
     const [selectedLaminareId, setSelectedLaminareId] = useState<string>(data.materialeLaminare[0]?.id || '');
     const [printCuAlb, setPrintCuAlb] = useState<boolean>(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedProducer, setSelectedProducer] = useState<string>('');
 
@@ -24,11 +25,14 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
     // Filter vehicles based on category and producer
     const filteredVehicles = useMemo(() => {
         return data.vehicule.filter(vehicle => {
+            const searchMatch = searchTerm === '' || 
+                vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
             const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
             const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
-            return categoryMatch && producerMatch;
+            return searchMatch && categoryMatch && producerMatch;
         });
-    }, [data.vehicule, selectedCategory, selectedProducer]);
+    }, [data.vehicule, searchTerm, selectedCategory, selectedProducer]);
 
     // Get unique producers for filter dropdown
     const uniqueProducers = useMemo(() => {
@@ -134,12 +138,19 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
                 
                 {/* Filters */}
                 <div>
-                    <label className="font-semibold text-gray-700 block mb-2">Filtrare vehicule</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="font-semibold text-gray-700 block mb-2">Căutare și filtrare vehicule</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input
+                            type="text"
+                            placeholder="Caută după producător sau model..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
                         <select 
                             value={selectedCategory} 
                             onChange={(e) => setSelectedCategory(e.target.value)} 
-                            className="w-full p-3 border rounded-lg bg-gray-50"
+                            className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Toate categoriile</option>
                             {data.categorii.map(cat => (
@@ -149,7 +160,7 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
                         <select 
                             value={selectedProducer} 
                             onChange={(e) => setSelectedProducer(e.target.value)} 
-                            className="w-full p-3 border rounded-lg bg-gray-50"
+                            className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Toți producătorii</option>
                             {uniqueProducers.map(producer => (
@@ -157,9 +168,10 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
                             ))}
                         </select>
                     </div>
-                    {(selectedCategory || selectedProducer) && (
+                    {(searchTerm || selectedCategory || selectedProducer) && (
                         <div className="mt-2 text-sm text-gray-600">
                             Afișez {filteredVehicles.length} vehicule
+                            {searchTerm && ` care conțin "${searchTerm}"`}
                             {selectedCategory && ` din categoria "${getCategoryName(selectedCategory)}"`}
                             {selectedProducer && ` de la producătorul "${selectedProducer}"`}
                         </div>
@@ -169,7 +181,11 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
                 <div>
                     <label className="font-semibold text-gray-700 block mb-2">1. Selectează vehiculul și acoperirea</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <select value={selectedVehiculId} onChange={handleVehiculChange} className="w-full p-3 border rounded-lg bg-gray-50">
+                        <select 
+                            value={selectedVehiculId} 
+                            onChange={handleVehiculChange} 
+                            className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
                             <option value="" disabled>Alege un vehicul...</option>
                             {filteredVehicles.map(v => (
                                 <option key={v.id} value={v.id}>
@@ -179,7 +195,11 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
                             ))}
                         </select>
                         {vehicul && (
-                             <select value={selectedAcoperireId} onChange={e => setSelectedAcoperireId(e.target.value)} className="w-full p-3 border rounded-lg bg-gray-50">
+                             <select 
+                                value={selectedAcoperireId} 
+                                onChange={e => setSelectedAcoperireId(e.target.value)} 
+                                className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
                                 <option value="" disabled>Alege o acoperire...</option>
                                 {vehicul.acoperiri.map(a => <option key={a.id} value={a.id}>{a.nume} ({a.pret} RON)</option>)}
                             </select>
@@ -210,10 +230,18 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
                      <div>
                         <label className="font-semibold text-gray-700 block mb-2">3. Selectează materialele</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <select value={selectedPrintId} onChange={e => setSelectedPrintId(e.target.value)} className="w-full p-3 border rounded-lg bg-gray-50">
+                            <select 
+                                value={selectedPrintId} 
+                                onChange={e => setSelectedPrintId(e.target.value)} 
+                                className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
                                 {data.materialePrint.map(m => <option key={m.id} value={m.id}>{m.nume}</option>)}
                             </select>
-                            <select value={selectedLaminareId} onChange={e => setSelectedLaminareId(e.target.value)} className="w-full p-3 border rounded-lg bg-gray-50">
+                            <select 
+                                value={selectedLaminareId} 
+                                onChange={e => setSelectedLaminareId(e.target.value)} 
+                                className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
                                 {data.materialeLaminare.map(m => <option key={m.id} value={m.id}>{m.nume}</option>)}
                             </select>
                         </div>
