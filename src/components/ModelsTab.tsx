@@ -39,6 +39,7 @@ export default function ModelsTab({
     categorieId: '',
     perioadaFabricatie: ''
   });
+  const [fixingCategories, setFixingCategories] = useState(false);
 
   const filteredVehicles = data.vehicule.filter(vehicle => {
     const searchMatch = searchTerm === '' || 
