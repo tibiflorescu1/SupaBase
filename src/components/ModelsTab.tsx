@@ -108,7 +108,7 @@ export default function ModelsTab({
     try {
       await onSaveAcoperire({
         ...newAcoperire,
-        vehiculId: vehicleId
+        vehicul_id: vehicleId
       });
       
       setNewAcoperire({ nume: '', pret: 0 });
@@ -121,7 +121,7 @@ export default function ModelsTab({
     try {
       await onSaveOptiuneExtra({
         ...newOptiune,
-        vehiculId: vehicleId
+        vehicul_id: vehicleId
       });
       
       setNewOptiune({ nume: '', pret: 0 });

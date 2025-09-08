@@ -317,12 +317,13 @@ export function useSupabaseData() {
   const saveAcoperire = async (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }) => {
     try {
         let fisier_id = null;
+        let dataUrl = '';
         
         // Handle file upload if present
         if ((acoperire as any).file) {
             const file = (acoperire as any).file;
             const reader = new FileReader();
-            const dataUrl = await new Promise<string>((resolve) => {
+            dataUrl = await new Promise<string>((resolve) => {
                 reader.onload = (e) => resolve(e.target?.result as string);
                 reader.readAsDataURL(file);
             });
@@ -367,8 +368,26 @@ export function useSupabaseData() {
               }))
             }));
         } else {
-            const { error } = await supabase.from('acoperiri').insert(dbAcoperire);
+            const { data: newAcoperire, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
             if (error) throw error;
+            
+            // Add to local state
+            setData(prevData => ({
+              ...prevData,
+              vehicule: prevData.vehicule.map(vehicul => 
+                vehicul.id === acoperire.vehicul_id
+                  ? {
+                      ...vehicul,
+                      acoperiri: [...vehicul.acoperiri, {
+                        id: newAcoperire.id,
+                        nume: acoperire.nume,
+                        pret: acoperire.pret,
+                        fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
+                      }]
+                    }
+                  : vehicul
+              )
+            }));
         }
     } catch (err) {
         console.error('Error saving coverage:', err);
@@ -390,12 +409,13 @@ export function useSupabaseData() {
   const saveOptiuneExtra = async (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }) => {
     try {
         let fisier_id = null;
+        let dataUrl = '';
         
         // Handle file upload if present
         if ((optiune as any).file) {
             const file = (optiune as any).file;
             const reader = new FileReader();
-            const dataUrl = await new Promise<string>((resolve) => {
+            dataUrl = await new Promise<string>((resolve) => {
                 reader.onload = (e) => resolve(e.target?.result as string);
                 reader.readAsDataURL(file);
             });
@@ -440,8 +460,26 @@ export function useSupabaseData() {
               }))
             }));
         } else {
-            const { error } = await supabase.from('optiuni_extra').insert(dbOptiune);
+            const { data: newOptiune, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
             if (error) throw error;
+            
+            // Add to local state
+            setData(prevData => ({
+              ...prevData,
+              vehicule: prevData.vehicule.map(vehicul => 
+                vehicul.id === optiune.vehicul_id
+                  ? {
+                      ...vehicul,
+                      optiuniExtra: [...vehicul.optiuniExtra, {
+                        id: newOptiune.id,
+                        nume: optiune.nume,
+                        pret: optiune.pret,
+                        fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
+                      }]
+                    }
+                  : vehicul
+              )
+            }));
         }
     } catch (err) {
         console.error('Error saving extra option:', err);
