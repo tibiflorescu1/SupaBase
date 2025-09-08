@@ -163,8 +163,24 @@ export default function ModelsTab({
   const handleUpdateAcoperire = async (acoperire: Acoperire, file?: File) => {
     try {
       if (file) {
-        // Only call the save function if there's a file to upload
-        await onSaveAcoperire(acoperire, file);
+        // Upload file and update local state
+        const result = await onSaveAcoperire({ ...acoperire, file } as any);
+        
+        // Update local editing state with file info
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            acoperiri: prev.acoperiri.map(ac => 
+              ac.id === acoperire.id 
+                ? { 
+                    ...ac, 
+                    fisier: { nume: file.name, dataUrl: URL.createObjectURL(file) }
+                  }
+                : ac
+            )
+          };
+        });
       } else {
         // For text changes, update local state immediately
         setEditingDetails(prev => {
@@ -187,8 +203,24 @@ export default function ModelsTab({
   const handleUpdateOptiune = async (optiune: OptiuneExtra, file?: File) => {
     try {
       if (file) {
-        // Only call the save function if there's a file to upload
-        await onSaveOptiuneExtra(optiune, file);
+        // Upload file and update local state
+        const result = await onSaveOptiuneExtra({ ...optiune, file } as any);
+        
+        // Update local editing state with file info
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            optiuniExtra: prev.optiuniExtra.map(opt => 
+              opt.id === optiune.id 
+                ? { 
+                    ...opt, 
+                    fisier: { nume: file.name, dataUrl: URL.createObjectURL(file) }
+                  }
+                : opt
+            )
+          };
+        });
       } else {
         // For text changes, update local state immediately
         setEditingDetails(prev => {

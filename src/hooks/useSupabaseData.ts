@@ -350,48 +350,35 @@ export function useSupabaseData() {
             const { error } = await supabase.from('acoperiri').update(dbAcoperire).eq('id', acoperire.id);
             if (error) throw error;
             
-            // Update local state
-            setData(prevData => ({
-              ...prevData,
-              vehicule: prevData.vehicule.map(vehicul => ({
-                ...vehicul,
-                acoperiri: vehicul.acoperiri.map(ac => 
-                  ac.id === acoperire.id 
-                    ? { 
-                        ...ac, 
-                        nume: acoperire.nume, 
-                        pret: acoperire.pret,
-                        fisier: fisier_id ? { nume: (acoperire as any).file.name, dataUrl } : ac.fisier
-                      }
-                    : ac
-                )
-              }))
-            }));
+            // Update main data state only if file was uploaded
+            if (fisier_id) {
+              setData(prevData => ({
+                ...prevData,
+                vehicule: prevData.vehicule.map(vehicul => ({
+                  ...vehicul,
+                  acoperiri: vehicul.acoperiri.map(ac => 
+                    ac.id === acoperire.id 
+                      ? { 
+                          ...ac, 
+                          nume: acoperire.nume, 
+                          pret: acoperire.pret,
+                          fisier: { nume: (acoperire as any).file.name, dataUrl }
+                        }
+                      : ac
+                  )
+                }))
+              }));
+            }
             
-            return { id: acoperire.id };
+            return { id: acoperire.id, fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined };
         } else {
             const { data: newAcoperire, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
             if (error) throw error;
             
-            // Add to local state
-            setData(prevData => ({
-              ...prevData,
-              vehicule: prevData.vehicule.map(vehicul => 
-                vehicul.id === acoperire.vehicul_id
-                  ? {
-                      ...vehicul,
-                      acoperiri: [...vehicul.acoperiri, {
-                        id: newAcoperire.id,
-                        nume: acoperire.nume,
-                        pret: acoperire.pret,
-                        fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
-                      }]
-                    }
-                  : vehicul
-              )
-            }));
-            
-            return { id: newAcoperire.id };
+            return { 
+              id: newAcoperire.id, 
+              fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined 
+            };
         }
     } catch (err) {
         console.error('Error saving coverage:', err);
@@ -446,48 +433,35 @@ export function useSupabaseData() {
             const { error } = await supabase.from('optiuni_extra').update(dbOptiune).eq('id', optiune.id);
             if (error) throw error;
             
-            // Update local state
-            setData(prevData => ({
-              ...prevData,
-              vehicule: prevData.vehicule.map(vehicul => ({
-                ...vehicul,
-                optiuniExtra: vehicul.optiuniExtra.map(opt => 
-                  opt.id === optiune.id 
-                    ? { 
-                        ...opt, 
-                        nume: optiune.nume, 
-                        pret: optiune.pret,
-                        fisier: fisier_id ? { nume: (optiune as any).file.name, dataUrl } : opt.fisier
-                      }
-                    : opt
-                )
-              }))
-            }));
+            // Update main data state only if file was uploaded
+            if (fisier_id) {
+              setData(prevData => ({
+                ...prevData,
+                vehicule: prevData.vehicule.map(vehicul => ({
+                  ...vehicul,
+                  optiuniExtra: vehicul.optiuniExtra.map(opt => 
+                    opt.id === optiune.id 
+                      ? { 
+                          ...opt, 
+                          nume: optiune.nume, 
+                          pret: optiune.pret,
+                          fisier: { nume: (optiune as any).file.name, dataUrl }
+                        }
+                      : opt
+                  )
+                }))
+              }));
+            }
             
-            return { id: optiune.id };
+            return { id: optiune.id, fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined };
         } else {
             const { data: newOptiune, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
             if (error) throw error;
             
-            // Add to local state
-            setData(prevData => ({
-              ...prevData,
-              vehicule: prevData.vehicule.map(vehicul => 
-                vehicul.id === optiune.vehicul_id
-                  ? {
-                      ...vehicul,
-                      optiuniExtra: [...vehicul.optiuniExtra, {
-                        id: newOptiune.id,
-                        nume: optiune.nume,
-                        pret: optiune.pret,
-                        fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
-                      }]
-                    }
-                  : vehicul
-              )
-            }));
-            
-            return { id: newOptiune.id };
+            return { 
+              id: newOptiune.id, 
+              fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined 
+            };
         }
     } catch (err) {
         console.error('Error saving extra option:', err);
