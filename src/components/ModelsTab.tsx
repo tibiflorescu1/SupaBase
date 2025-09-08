@@ -34,7 +34,8 @@ export default function ModelsTab({
   onSaveOptiuneExtra, 
   onDeleteOptiuneExtra 
 }: ModelsTabProps) {
-  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
+  const [editingVehicleDetails, setEditingVehicleDetails] = useState<Vehicul | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -125,8 +126,11 @@ export default function ModelsTab({
       try {
         setSaving(true);
         await onDeleteVehicul(id);
-        if (selectedVehicle === id) {
-          setSelectedVehicle(null);
+        if (viewingVehicle?.id === id) {
+          setViewingVehicle(null);
+        }
+        if (editingVehicleDetails?.id === id) {
+          setEditingVehicleDetails(null);
         }
       } catch (error) {
         console.error('Error deleting vehicle:', error);
@@ -656,17 +660,36 @@ function VehicleDetailsModal({ vehicle, onClose, downloadFile }: VehicleDetailsM
                         <div className="flex-1">
                           <h6 className="font-semibold text-gray-900">{coverage.nume}</h6>
                           <p className="text-lg font-bold text-green-600 mt-1">{coverage.pret} RON</p>
+                          {coverage.fisier && (
+                            <div className="mt-2">
+                              <button
+                                onClick={() => downloadFile(coverage.fisier!.dataUrl, coverage.fisier!.nume)}
+                                className="flex items-center text-blue-600 hover:text-blue-800 transition-colors text-sm"
+                                title={`Descarcă ${coverage.fisier.nume}`}
+                              >
+                                <FileText className="w-4 h-4 mr-1" />
+                                {coverage.fisier.nume}
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        {coverage.fisier && (
+                        <div className="flex space-x-2">
                           <button
-                            onClick={() => downloadFile(coverage.fisier!.dataUrl, coverage.fisier!.nume)}
-                            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            title={`Descarcă ${coverage.fisier.nume}`}
+                            onClick={() => setEditingAcoperire(coverage)}
+                            className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Editează acoperire"
                           >
-                            <FileText className="w-4 h-4 mr-2" />
-                            <span className="text-sm">{coverage.fisier.nume}</span>
+                            <Edit2 className="w-4 h-4" />
                           </button>
-                        )}
+                          <button
+                            onClick={() => handleDeleteAcoperire(coverage.id)}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Șterge acoperire"
+                            disabled={saving}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -688,22 +711,99 @@ function VehicleDetailsModal({ vehicle, onClose, downloadFile }: VehicleDetailsM
                 <div className="grid gap-3">
                   {vehicle.optiuniExtra.map((option) => (
                     <div key={option.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    {editingOptiune?.id === option.id ? (
+                      <div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <input
+                            type="text"
+                            value={editingOptiune.nume}
+                            onChange={(e) => setEditingOptiune(prev => prev ? { ...prev, nume: e.target.value } : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="Nume opțiune"
+                          />
+                          <input
+                            type="number"
+                            value={editingOptiune.pret}
+                            onChange={(e) => setEditingOptiune(prev => prev ? { ...prev, pret: parseFloat(e.target.value) || 0 } : null)}
+                            className="px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="Preț (RON)"
+                          />
+                          <div className="space-y-2">
+                            <input
+                              type="file"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  (editingOptiune as any).newFile = file;
+                                }
+                              }}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            />
+                            {editingAcoperire.fisier && (
+                              <div className="text-sm text-gray-600">
+                                Fișier curent: {editingAcoperire.fisier.nume}
+                              </div>
+                            />
+                            {editingOptiune.fisier && (
+                              <div className="text-sm text-gray-600">
+                                Fișier curent: {editingOptiune.fisier.nume}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => setEditingOptiune(null)}
+                            className="px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                          >
+                            Anulează
+                          </button>
+                          <button
+                            onClick={() => handleSaveOptiune(editingOptiune, (editingOptiune as any).newFile)}
+                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            disabled={saving}
+                          >
+                            {saving ? 'Se salvează...' : 'Salvează'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <h6 className="font-semibold text-gray-900">{option.nume}</h6>
                           <p className="text-lg font-bold text-green-600 mt-1">{option.pret} RON</p>
+                          {option.fisier && (
+                            <div className="mt-2">
+                              <button
+                                onClick={() => downloadFile(option.fisier!.dataUrl, option.fisier!.nume)}
+                                className="flex items-center text-blue-600 hover:text-blue-800 transition-colors text-sm"
+                                title={`Descarcă ${option.fisier.nume}`}
+                              >
+                                <FileText className="w-4 h-4 mr-1" />
+                                {option.fisier.nume}
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        {option.fisier && (
+                        <div className="flex space-x-2">
                           <button
-                            onClick={() => downloadFile(option.fisier!.dataUrl, option.fisier!.nume)}
-                            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            title={`Descarcă ${option.fisier.nume}`}
+                            onClick={() => setEditingOptiune(option)}
+                            className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Editează opțiune"
                           >
-                            <FileText className="w-4 h-4 mr-2" />
-                            <span className="text-sm">{option.fisier.nume}</span>
+                            <Edit2 className="w-4 h-4" />
                           </button>
-                        )}
+                          <button
+                            onClick={() => handleDeleteOptiune(option.id)}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Șterge opțiune"
+                            disabled={saving}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+                    )}
                     </div>
                   ))}
                 </div>
