@@ -29,6 +29,15 @@ export default function ModelsTab({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
   const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
+  const [editingDetails, setEditingDetails] = useState<Vehicul | null>(null);
+  const [newVehicle, setNewVehicle] = useState({
+    producator: '',
+    model: '',
+    categorieId: '',
+    perioadaFabricatie: ''
+  });
+
+  const filteredVehicles = data.vehicule.filter(vehicle => {
     // Search filter - check if search term matches producer or model
     const searchMatch = searchTerm === '' || 
       (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -47,21 +56,17 @@ export default function ModelsTab({
   const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
-  const filteredVehicles = data.vehicule.filter(vehicle =>
-    vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
-  ).filter(vehicle =>
-    selectedCategory === '' || vehicle.categorieId === selectedCategory
-  ).filter(vehicle =>
-    selectedProducer === '' || vehicle.producator === selectedProducer
-  );
-
   // Get unique producers for filter dropdown
-  const uniqueProducers = [...new Set(data.vehicule.map(v => v.producator))].sort();
+  const uniqueProducers = (() => {
     const producers = selectedCategory === '' 
       ? data.vehicule.map(v => v.producator).filter(Boolean)
       : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator).filter(Boolean);
     return [...new Set(producers)].filter(p => p && p.trim() !== '').sort();
+  })();
+
+  const getCategoryName = (categoryId: string) => {
+    const category = data.categorii.find(c => c.id === categoryId);
+    return category ? category.nume : 'Necunoscută';
   };
 
   const downloadFile = (fisier: Fisier) => {
