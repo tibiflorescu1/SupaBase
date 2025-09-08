@@ -112,7 +112,6 @@ export default function ModelsTab({
       });
       
       setNewAcoperire({ nume: '', pret: 0 });
-      onRefetch();
     } catch (error) {
       console.error('Error adding acoperire:', error);
     }
@@ -126,7 +125,6 @@ export default function ModelsTab({
       });
       
       setNewOptiune({ nume: '', pret: 0 });
-      onRefetch();
     } catch (error) {
       console.error('Error adding optiune:', error);
     }
