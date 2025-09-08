@@ -6,10 +6,22 @@ interface ModelsTabProps {
   data: AppData;
   onSaveVehicul: (vehicul: Omit<Vehicul, 'id' | 'acoperiri' | 'optiuniExtra'> & { id?: string }) => Promise<void>;
   onDeleteVehicul: (id: string) => Promise<void>;
+  onSaveAcoperire: (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }) => Promise<void>;
+  onDeleteAcoperire: (id: string) => Promise<void>;
+  onSaveOptiuneExtra: (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }) => Promise<void>;
+  onDeleteOptiuneExtra: (id: string) => Promise<void>;
   onRefetch: () => Promise<void>;
 }
 
-export default function ModelsTab({ data, onSaveVehicul, onDeleteVehicul }: ModelsTabProps) {
+export default function ModelsTab({ 
+  data, 
+  onSaveVehicul, 
+  onDeleteVehicul, 
+  onSaveAcoperire, 
+  onDeleteAcoperire, 
+  onSaveOptiuneExtra, 
+  onDeleteOptiuneExtra 
+}: ModelsTabProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -46,7 +58,6 @@ export default function ModelsTab({ data, onSaveVehicul, onDeleteVehicul }: Mode
         if (selectedVehicle === id) {
           setSelectedVehicle(null);
         }
-        alert('Vehiculul a fost salvat cu succes!');
       } catch (error) {
         console.error('Error deleting vehicle:', error);
         alert('Eroare la ștergerea vehiculului');
@@ -268,99 +279,106 @@ export default function ModelsTab({ data, onSaveVehicul, onDeleteVehicul }: Mode
       {selectedVehicle && (
         <VehicleDetailsModal
           vehicle={data.vehicule.find(v => v.id === selectedVehicle)!}
-          data={data}
           onClose={() => setSelectedVehicle(null)}
-          onUpdate={(updatedVehicle) => {
-            setData({
-              ...data,
-              vehicule: data.vehicule.map(v =>
-                v.id === updatedVehicle.id ? updatedVehicle : v
-              )
-            });
-          }}
+          onSaveAcoperire={onSaveAcoperire}
+          onDeleteAcoperire={onDeleteAcoperire}
+          onSaveOptiuneExtra={onSaveOptiuneExtra}
+          onDeleteOptiuneExtra={onDeleteOptiuneExtra}
         />
       )}
     </div>
   );
 }
 
-function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
+function VehicleDetailsModal({ 
+  vehicle, 
+  onClose, 
+  onSaveAcoperire, 
+  onDeleteAcoperire, 
+  onSaveOptiuneExtra, 
+  onDeleteOptiuneExtra 
+}: {
   vehicle: Vehicul;
-  data: AppData;
   onClose: () => void;
-  onUpdate: (vehicle: Vehicul) => void;
+  onSaveAcoperire: (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }) => Promise<void>;
+  onDeleteAcoperire: (id: string) => Promise<void>;
+  onSaveOptiuneExtra: (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }) => Promise<void>;
+  onDeleteOptiuneExtra: (id: string) => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<'acoperiri' | 'optiuni'>('acoperiri');
   const [editingCoverage, setEditingCoverage] = useState<Acoperire | null>(null);
   const [editingOption, setEditingOption] = useState<OptiuneExtra | null>(null);
   const [isAddingCoverage, setIsAddingCoverage] = useState(false);
   const [isAddingOption, setIsAddingOption] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleSaveCoverage = () => {
-    if (editingCoverage && editingCoverage.nume && editingCoverage.pret) {
-      let updatedCoverages;
-      if (editingCoverage.id) {
-        updatedCoverages = vehicle.acoperiri.map(c =>
-          c.id === editingCoverage.id ? editingCoverage : c
-        );
-      } else {
-        const newCoverage = {
-          ...editingCoverage,
-          id: Date.now().toString()
-        };
-        updatedCoverages = [...vehicle.acoperiri, newCoverage];
+  const handleSaveCoverage = async () => {
+    if (editingCoverage && editingCoverage.nume && editingCoverage.pret !== undefined) {
+      try {
+        setSaving(true);
+        await onSaveAcoperire({
+          id: editingCoverage.id || undefined,
+          nume: editingCoverage.nume,
+          pret: editingCoverage.pret,
+          vehicul_id: vehicle.id
+        });
+        setEditingCoverage(null);
+        setIsAddingCoverage(false);
+      } catch (error) {
+        console.error('Error saving coverage:', error);
+        alert('Eroare la salvarea acoperirii');
+      } finally {
+        setSaving(false);
       }
-      
-      onUpdate({
-        ...vehicle,
-        acoperiri: updatedCoverages
-      });
-      
-      setEditingCoverage(null);
-      setIsAddingCoverage(false);
     }
   };
 
-  const handleSaveOption = () => {
-    if (editingOption && editingOption.nume && editingOption.pret) {
-      let updatedOptions;
-      if (editingOption.id) {
-        updatedOptions = vehicle.optiuniExtra.map(o =>
-          o.id === editingOption.id ? editingOption : o
-        );
-      } else {
-        const newOption = {
-          ...editingOption,
-          id: Date.now().toString()
-        };
-        updatedOptions = [...vehicle.optiuniExtra, newOption];
+  const handleSaveOption = async () => {
+    if (editingOption && editingOption.nume && editingOption.pret !== undefined) {
+      try {
+        setSaving(true);
+        await onSaveOptiuneExtra({
+          id: editingOption.id || undefined,
+          nume: editingOption.nume,
+          pret: editingOption.pret,
+          vehicul_id: vehicle.id
+        });
+        setEditingOption(null);
+        setIsAddingOption(false);
+      } catch (error) {
+        console.error('Error saving option:', error);
+        alert('Eroare la salvarea opțiunii');
+      } finally {
+        setSaving(false);
       }
-      
-      onUpdate({
-        ...vehicle,
-        optiuniExtra: updatedOptions
-      });
-      
-      setEditingOption(null);
-      setIsAddingOption(false);
     }
   };
 
-  const handleDeleteCoverage = (id: string) => {
+  const handleDeleteCoverage = async (id: string) => {
     if (confirm('Ești sigur că vrei să ștergi această acoperire?')) {
-      onUpdate({
-        ...vehicle,
-        acoperiri: vehicle.acoperiri.filter(c => c.id !== id)
-      });
+      try {
+        setSaving(true);
+        await onDeleteAcoperire(id);
+      } catch (error) {
+        console.error('Error deleting coverage:', error);
+        alert('Eroare la ștergerea acoperirii');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
-  const handleDeleteOption = (id: string) => {
+  const handleDeleteOption = async (id: string) => {
     if (confirm('Ești sigur că vrei să ștergi această opțiune?')) {
-      onUpdate({
-        ...vehicle,
-        optiuniExtra: vehicle.optiuniExtra.filter(o => o.id !== id)
-      });
+      try {
+        setSaving(true);
+        await onDeleteOptiuneExtra(id);
+      } catch (error) {
+        console.error('Error deleting option:', error);
+        alert('Eroare la ștergerea opțiunii');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -413,9 +431,7 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                     setEditingCoverage({
                       id: '',
                       nume: '',
-                      descriere: '',
                       pret: 0,
-                      obligatorie: false
                     });
                     setIsAddingCoverage(true);
                   }}
@@ -454,28 +470,6 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Descriere
-                      </label>
-                      <textarea
-                        value={editingCoverage?.descriere || ''}
-                        onChange={(e) => setEditingCoverage(prev => prev ? { ...prev, descriere: e.target.value } : null)}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={editingCoverage?.obligatorie || false}
-                          onChange={(e) => setEditingCoverage(prev => prev ? { ...prev, obligatorie: e.target.checked } : null)}
-                          className="mr-2"
-                        />
-                        <span className="text-sm font-medium text-gray-700">Acoperire obligatorie</span>
-                      </label>
-                    </div>
                   </div>
                   <div className="flex justify-end space-x-2 mt-4">
                     <button
@@ -490,8 +484,9 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                     <button
                       onClick={handleSaveCoverage}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      disabled={saving}
                     >
-                      Salvează
+                      {saving ? 'Se salvează...' : 'Salvează'}
                     </button>
                   </div>
                 </div>
@@ -503,25 +498,21 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <h6 className="font-medium">{coverage.nume}</h6>
-                        {coverage.obligatorie && (
-                          <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
-                            Obligatorie
-                          </span>
-                        )}
                       </div>
-                      <p className="text-sm text-gray-600">{coverage.descriere}</p>
                       <p className="text-sm font-medium text-green-600">{coverage.pret} RON</p>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setEditingCoverage(coverage)}
                         className="p-2 text-indigo-600 hover:text-indigo-800"
+                        disabled={saving}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteCoverage(coverage.id)}
                         className="p-2 text-red-600 hover:text-red-800"
+                        disabled={saving}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -541,7 +532,6 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                     setEditingOption({
                       id: '',
                       nume: '',
-                      descriere: '',
                       pret: 0
                     });
                     setIsAddingOption(true);
@@ -581,17 +571,6 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Descriere
-                      </label>
-                      <textarea
-                        value={editingOption?.descriere || ''}
-                        onChange={(e) => setEditingOption(prev => prev ? { ...prev, descriere: e.target.value } : null)}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
                   </div>
                   <div className="flex justify-end space-x-2 mt-4">
                     <button
@@ -606,8 +585,9 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                     <button
                       onClick={handleSaveOption}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      disabled={saving}
                     >
-                      Salvează
+                      {saving ? 'Se salvează...' : 'Salvează'}
                     </button>
                   </div>
                 </div>
@@ -618,19 +598,20 @@ function VehicleDetailsModal({ vehicle, data, onClose, onUpdate }: {
                   <div key={option.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
                     <div className="flex-1">
                       <h6 className="font-medium">{option.nume}</h6>
-                      <p className="text-sm text-gray-600">{option.descriere}</p>
                       <p className="text-sm font-medium text-green-600">{option.pret} RON</p>
                     </div>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => setEditingOption(option)}
                         className="p-2 text-indigo-600 hover:text-indigo-800"
+                        disabled={saving}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteOption(option.id)}
                         className="p-2 text-red-600 hover:text-red-800"
+                        disabled={saving}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
