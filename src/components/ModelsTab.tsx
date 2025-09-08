@@ -1,64 +1,39 @@
 import React, { useState } from 'react';
 import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X } from 'lucide-react';
-
-interface Vehicle {
-  id: string;
-  producator: string;
-  model: string;
-  categorie_id: string;
-  perioada_fabricatie: string;
-}
-
-interface Category {
-  id: string;
-  nume: string;
-}
-
-interface Acoperire {
-  id: string;
-  vehicul_id: string;
-  nume: string;
-  pret: number;
-  fisier_id?: string;
-}
-
-interface OptiuneExtra {
-  id: string;
-  vehicul_id: string;
-  nume: string;
-  pret: number;
-  fisier_id?: string;
-}
-
-interface Fisier {
-  id: string;
-  nume: string;
-  data_url: string;
-}
+import { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra, Fisier } from '../hooks/useSupabaseData';
 
 interface ModelsTabProps {
-  data: {
-    vehicule: Vehicle[];
-    categorii: Category[];
-    acoperiri: Acoperire[];
-    optiuni_extra: OptiuneExtra[];
-    fisiere: Fisier[];
-  };
-  onRefresh: () => void;
+  data: AppData;
+  onSaveVehicul: (vehicul: Partial<Vehicul>) => Promise<void>;
+  onDeleteVehicul: (id: string) => Promise<void>;
+  onSaveAcoperire: (acoperire: Partial<Acoperire>, file?: File) => Promise<void>;
+  onDeleteAcoperire: (id: string) => Promise<void>;
+  onSaveOptiuneExtra: (optiune: Partial<OptiuneExtra>, file?: File) => Promise<void>;
+  onDeleteOptiuneExtra: (id: string) => Promise<void>;
+  onRefetch: () => void;
 }
 
-export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
+export default function ModelsTab({ 
+  data, 
+  onSaveVehicul, 
+  onDeleteVehicul, 
+  onSaveAcoperire, 
+  onDeleteAcoperire, 
+  onSaveOptiuneExtra, 
+  onDeleteOptiuneExtra, 
+  onRefetch 
+}: ModelsTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-  const [viewingVehicle, setViewingVehicle] = useState<Vehicle | null>(null);
-  const [editingDetails, setEditingDetails] = useState<Vehicle | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
+  const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
+  const [editingDetails, setEditingDetails] = useState<Vehicul | null>(null);
   const [newVehicle, setNewVehicle] = useState({
     producator: '',
     model: '',
-    categorie_id: '',
-    perioada_fabricatie: ''
+    categorieId: '',
+    perioadaFabricatie: ''
   });
 
   const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
@@ -69,7 +44,7 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
     vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
     vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
   ).filter(vehicle =>
-    selectedCategory === '' || vehicle.categorie_id === selectedCategory
+    selectedCategory === '' || vehicle.categorieId === selectedCategory
   );
 
   const getCategoryName = (categoryId: string) => {
@@ -77,71 +52,30 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
     return category ? category.nume : 'Necunoscută';
   };
 
-  const getVehicleAcoperiri = (vehicleId: string) => {
-    return data.acoperiri.filter(ac => ac.vehicul_id === vehicleId);
-  };
-
-  const getVehicleOptiuni = (vehicleId: string) => {
-    return data.optiuni_extra.filter(opt => opt.vehicul_id === vehicleId);
-  };
-
-  const getFileName = (fileId: string) => {
-    const file = data.fisiere.find(f => f.id === fileId);
-    return file ? file.nume : 'Fișier necunoscut';
-  };
-
-  const downloadFile = (fileId: string) => {
-    const file = data.fisiere.find(f => f.id === fileId);
-    if (file) {
-      const link = document.createElement('a');
-      link.href = file.data_url;
-      link.download = file.nume;
-      link.click();
-    }
-  };
-
-  const handleFileUpload = async (file: File, type: 'acoperire' | 'optiune', itemId?: string) => {
-    try {
-      setUploadingFile(itemId || 'new');
-      
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const dataUrl = e.target?.result as string;
-        
-        // Simulate file upload to database
-        const newFile = {
-          id: crypto.randomUUID(),
-          nume: file.name,
-          data_url: dataUrl
-        };
-        
-        // Here you would normally save to Supabase
-        console.log('Uploading file:', newFile);
-        
-        setUploadingFile(null);
-        onRefresh();
-      };
-      
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      setUploadingFile(null);
-    }
+  const downloadFile = (fisier: Fisier) => {
+    const link = document.createElement('a');
+    link.href = fisier.dataUrl;
+    link.download = fisier.nume;
+    link.click();
   };
 
   const handleAddVehicle = async () => {
     try {
-      // Here you would normally save to Supabase
-      console.log('Adding vehicle:', newVehicle);
+      await onSaveVehicul({
+        producator: newVehicle.producator,
+        model: newVehicle.model,
+        categorieId: newVehicle.categorieId,
+        perioadaFabricatie: newVehicle.perioadaFabricatie
+      });
       
       setNewVehicle({
         producator: '',
         model: '',
-        categorie_id: '',
-        perioada_fabricatie: ''
+        categorieId: '',
+        perioadaFabricatie: ''
       });
       setShowAddForm(false);
-      onRefresh();
+      onRefetch();
     } catch (error) {
       console.error('Error adding vehicle:', error);
     }
@@ -151,11 +85,9 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
     if (!editingVehicle) return;
     
     try {
-      // Here you would normally update in Supabase
-      console.log('Updating vehicle:', editingVehicle);
-      
+      await onSaveVehicul(editingVehicle);
       setEditingVehicle(null);
-      onRefresh();
+      onRefetch();
     } catch (error) {
       console.error('Error updating vehicle:', error);
     }
@@ -165,10 +97,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
     if (!confirm('Ești sigur că vrei să ștergi acest vehicul?')) return;
     
     try {
-      // Here you would normally delete from Supabase
-      console.log('Deleting vehicle:', vehicleId);
-      
-      onRefresh();
+      await onDeleteVehicul(vehicleId);
+      onRefetch();
     } catch (error) {
       console.error('Error deleting vehicle:', error);
     }
@@ -176,11 +106,13 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
 
   const handleAddAcoperire = async (vehicleId: string) => {
     try {
-      // Here you would normally save to Supabase
-      console.log('Adding acoperire:', { ...newAcoperire, vehicul_id: vehicleId });
+      await onSaveAcoperire({
+        ...newAcoperire,
+        vehiculId: vehicleId
+      });
       
       setNewAcoperire({ nume: '', pret: 0 });
-      onRefresh();
+      onRefetch();
     } catch (error) {
       console.error('Error adding acoperire:', error);
     }
@@ -188,31 +120,31 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
 
   const handleAddOptiune = async (vehicleId: string) => {
     try {
-      // Here you would normally save to Supabase
-      console.log('Adding optiune:', { ...newOptiune, vehicul_id: vehicleId });
+      await onSaveOptiuneExtra({
+        ...newOptiune,
+        vehiculId: vehicleId
+      });
       
       setNewOptiune({ nume: '', pret: 0 });
-      onRefresh();
+      onRefetch();
     } catch (error) {
       console.error('Error adding optiune:', error);
     }
   };
 
-  const handleUpdateAcoperire = async (acoperire: Acoperire) => {
+  const handleUpdateAcoperire = async (acoperire: Acoperire, file?: File) => {
     try {
-      // Here you would normally update in Supabase
-      console.log('Updating acoperire:', acoperire);
-      onRefresh();
+      await onSaveAcoperire(acoperire, file);
+      onRefetch();
     } catch (error) {
       console.error('Error updating acoperire:', error);
     }
   };
 
-  const handleUpdateOptiune = async (optiune: OptiuneExtra) => {
+  const handleUpdateOptiune = async (optiune: OptiuneExtra, file?: File) => {
     try {
-      // Here you would normally update in Supabase
-      console.log('Updating optiune:', optiune);
-      onRefresh();
+      await onSaveOptiuneExtra(optiune, file);
+      onRefetch();
     } catch (error) {
       console.error('Error updating optiune:', error);
     }
@@ -222,9 +154,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
     if (!confirm('Ești sigur că vrei să ștergi această acoperire?')) return;
     
     try {
-      // Here you would normally delete from Supabase
-      console.log('Deleting acoperire:', acoperireId);
-      onRefresh();
+      await onDeleteAcoperire(acoperireId);
+      onRefetch();
     } catch (error) {
       console.error('Error deleting acoperire:', error);
     }
@@ -234,9 +165,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
     if (!confirm('Ești sigur că vrei să ștergi această opțiune?')) return;
     
     try {
-      // Here you would normally delete from Supabase
-      console.log('Deleting optiune:', optiuneId);
-      onRefresh();
+      await onDeleteOptiuneExtra(optiuneId);
+      onRefetch();
     } catch (error) {
       console.error('Error deleting optiune:', error);
     }
@@ -311,8 +241,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredVehicles.map((vehicle) => {
-              const acoperiri = getVehicleAcoperiri(vehicle.id);
-              const optiuni = getVehicleOptiuni(vehicle.id);
+              const acoperiri = vehicle.acoperiri || [];
+              const optiuni = vehicle.optiuniExtra || [];
               
               return (
                 <tr key={vehicle.id} className="hover:bg-gray-50">
@@ -323,10 +253,10 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                     {vehicle.model}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getCategoryName(vehicle.categorie_id)}
+                    {getCategoryName(vehicle.categorieId)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {vehicle.perioada_fabricatie || '-'}
+                    {vehicle.perioadaFabricatie || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -428,8 +358,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                   Categorie
                 </label>
                 <select
-                  value={newVehicle.categorie_id}
-                  onChange={(e) => setNewVehicle({ ...newVehicle, categorie_id: e.target.value })}
+                  value={newVehicle.categorieId}
+                  onChange={(e) => setNewVehicle({ ...newVehicle, categorieId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Selectează categoria</option>
@@ -447,8 +377,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                 </label>
                 <input
                   type="text"
-                  value={newVehicle.perioada_fabricatie}
-                  onChange={(e) => setNewVehicle({ ...newVehicle, perioada_fabricatie: e.target.value })}
+                  value={newVehicle.perioadaFabricatie}
+                  onChange={(e) => setNewVehicle({ ...newVehicle, perioadaFabricatie: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="ex: 2020-2024"
                 />
@@ -517,8 +447,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                   Categorie
                 </label>
                 <select
-                  value={editingVehicle.categorie_id}
-                  onChange={(e) => setEditingVehicle({ ...editingVehicle, categorie_id: e.target.value })}
+                  value={editingVehicle.categorieId}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, categorieId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Selectează categoria</option>
@@ -536,8 +466,8 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                 </label>
                 <input
                   type="text"
-                  value={editingVehicle.perioada_fabricatie}
-                  onChange={(e) => setEditingVehicle({ ...editingVehicle, perioada_fabricatie: e.target.value })}
+                  value={editingVehicle.perioadaFabricatie}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, perioadaFabricatie: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="ex: 2020-2024"
                 />
@@ -590,11 +520,11 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Categorie:</span>
-                    <span className="ml-2 font-medium">{getCategoryName(viewingVehicle.categorie_id)}</span>
+                    <span className="ml-2 font-medium">{getCategoryName(viewingVehicle.categorieId)}</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Perioada:</span>
-                    <span className="ml-2 font-medium">{viewingVehicle.perioada_fabricatie || '-'}</span>
+                    <span className="ml-2 font-medium">{viewingVehicle.perioadaFabricatie || '-'}</span>
                   </div>
                 </div>
               </div>
@@ -603,24 +533,24 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Acoperiri disponibile</h4>
                 <div className="space-y-2">
-                  {getVehicleAcoperiri(viewingVehicle.id).map((acoperire) => (
+                  {(viewingVehicle.acoperiri || []).map((acoperire) => (
                     <div key={acoperire.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
                         <span className="font-medium text-gray-900">{acoperire.nume}</span>
                         <span className="ml-3 text-green-600 font-semibold">{acoperire.pret} RON</span>
                       </div>
-                      {acoperire.fisier_id && (
+                      {acoperire.fisier && (
                         <button
-                          onClick={() => downloadFile(acoperire.fisier_id!)}
+                          onClick={() => downloadFile(acoperire.fisier!)}
                           className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
                         >
                           <Download className="w-4 h-4" />
-                          {getFileName(acoperire.fisier_id)}
+                          {acoperire.fisier.nume}
                         </button>
                       )}
                     </div>
                   ))}
-                  {getVehicleAcoperiri(viewingVehicle.id).length === 0 && (
+                  {(!viewingVehicle.acoperiri || viewingVehicle.acoperiri.length === 0) && (
                     <p className="text-gray-500 text-center py-4">Nu există acoperiri definite</p>
                   )}
                 </div>
@@ -630,24 +560,24 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Opțiuni extra disponibile</h4>
                 <div className="space-y-2">
-                  {getVehicleOptiuni(viewingVehicle.id).map((optiune) => (
+                  {(viewingVehicle.optiuniExtra || []).map((optiune) => (
                     <div key={optiune.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
                         <span className="font-medium text-gray-900">{optiune.nume}</span>
                         <span className="ml-3 text-green-600 font-semibold">{optiune.pret} RON</span>
                       </div>
-                      {optiune.fisier_id && (
+                      {optiune.fisier && (
                         <button
-                          onClick={() => downloadFile(optiune.fisier_id!)}
+                          onClick={() => downloadFile(optiune.fisier!)}
                           className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
                         >
                           <Download className="w-4 h-4" />
-                          {getFileName(optiune.fisier_id)}
+                          {optiune.fisier.nume}
                         </button>
                       )}
                     </div>
                   ))}
-                  {getVehicleOptiuni(viewingVehicle.id).length === 0 && (
+                  {(!viewingVehicle.optiuniExtra || viewingVehicle.optiuniExtra.length === 0) && (
                     <p className="text-gray-500 text-center py-4">Nu există opțiuni extra definite</p>
                   )}
                 </div>
@@ -724,7 +654,7 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                 </div>
 
                 <div className="space-y-2">
-                  {getVehicleAcoperiri(editingDetails.id).map((acoperire) => (
+                  {(editingDetails.acoperiri || []).map((acoperire) => (
                     <div key={acoperire.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
                         <input
@@ -743,15 +673,15 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                         />
                       </div>
                       <div className="flex items-center gap-2">
-                        {acoperire.fisier_id ? (
+                        {acoperire.fisier ? (
                           <div className="flex items-center gap-1">
                             <button
-                              onClick={() => downloadFile(acoperire.fisier_id!)}
+                              onClick={() => downloadFile(acoperire.fisier!)}
                               className="text-blue-600 hover:text-blue-800 text-xs"
                             >
                               <Download className="w-4 h-4" />
                             </button>
-                            <span className="text-xs text-gray-500">{getFileName(acoperire.fisier_id)}</span>
+                            <span className="text-xs text-gray-500">{acoperire.fisier.nume}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">Fără fișier</span>
@@ -760,7 +690,7 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                           type="file"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handleFileUpload(file, 'acoperire', acoperire.id);
+                            if (file) handleUpdateAcoperire(acoperire, file);
                           }}
                           className="hidden"
                           id={`file-acoperire-${acoperire.id}`}
@@ -780,7 +710,7 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                       </div>
                     </div>
                   ))}
-                  {getVehicleAcoperiri(editingDetails.id).length === 0 && (
+                  {(!editingDetails.acoperiri || editingDetails.acoperiri.length === 0) && (
                     <p className="text-gray-500 text-center py-4">Nu există acoperiri definite</p>
                   )}
                 </div>
@@ -831,7 +761,7 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                 </div>
 
                 <div className="space-y-2">
-                  {getVehicleOptiuni(editingDetails.id).map((optiune) => (
+                  {(editingDetails.optiuniExtra || []).map((optiune) => (
                     <div key={optiune.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
                         <input
@@ -850,15 +780,15 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                         />
                       </div>
                       <div className="flex items-center gap-2">
-                        {optiune.fisier_id ? (
+                        {optiune.fisier ? (
                           <div className="flex items-center gap-1">
                             <button
-                              onClick={() => downloadFile(optiune.fisier_id!)}
+                              onClick={() => downloadFile(optiune.fisier!)}
                               className="text-blue-600 hover:text-blue-800 text-xs"
                             >
                               <Download className="w-4 h-4" />
                             </button>
-                            <span className="text-xs text-gray-500">{getFileName(optiune.fisier_id)}</span>
+                            <span className="text-xs text-gray-500">{optiune.fisier.nume}</span>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">Fără fișier</span>
@@ -867,7 +797,7 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                           type="file"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handleFileUpload(file, 'optiune', optiune.id);
+                            if (file) handleUpdateOptiune(optiune, file);
                           }}
                           className="hidden"
                           id={`file-optiune-${optiune.id}`}
@@ -887,7 +817,7 @@ export default function ModelsTab({ data, onRefresh }: ModelsTabProps) {
                       </div>
                     </div>
                   ))}
-                  {getVehicleOptiuni(editingDetails.id).length === 0 && (
+                  {(!editingDetails.optiuniExtra || editingDetails.optiuniExtra.length === 0) && (
                     <p className="text-gray-500 text-center py-4">Nu există opțiuni extra definite</p>
                   )}
                 </div>
