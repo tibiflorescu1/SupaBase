@@ -283,7 +283,7 @@ export default function ModelsTab({
                 </div>
                 {acoperire.fisier && (
                   <div className="flex items-center text-blue-600">
-                    <Image className="w-4 h-4 mr-1" />
+                    <FileText className="w-4 h-4 mr-1" />
                     <span className="text-xs">{acoperire.fisier.nume}</span>
                   </div>
                 )}
@@ -314,7 +314,6 @@ export default function ModelsTab({
                 <div>
                   <input
                     type="file"
-                    accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) updateNewAcoperire(index, 'file', file);
@@ -356,7 +355,7 @@ export default function ModelsTab({
                 </div>
                 {optiune.fisier && (
                   <div className="flex items-center text-blue-600">
-                    <Image className="w-4 h-4 mr-1" />
+                    <FileText className="w-4 h-4 mr-1" />
                     <span className="text-xs">{optiune.fisier.nume}</span>
                   </div>
                 )}
@@ -387,7 +386,6 @@ export default function ModelsTab({
                 <div>
                   <input
                     type="file"
-                    accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) updateNewOptiune(index, 'file', file);
@@ -735,7 +733,6 @@ function VehicleDetailsModal({
                       </label>
                       <input
                         type="file"
-                        accept="image/*"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -769,7 +766,7 @@ function VehicleDetailsModal({
                         <h6 className="font-medium">{coverage.nume}</h6>
                         {coverage.fisier && (
                           <div className="flex items-center text-blue-600">
-                            <Image className="w-4 h-4 mr-1" />
+                            <FileText className="w-4 h-4 mr-1" />
                             <span className="text-xs">{coverage.fisier.nume}</span>
                           </div>
                         )}
@@ -852,7 +849,6 @@ function VehicleDetailsModal({
                       </label>
                       <input
                         type="file"
-                        accept="image/*"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -886,7 +882,7 @@ function VehicleDetailsModal({
                         <h6 className="font-medium">{option.nume}</h6>
                         {option.fisier && (
                           <div className="flex items-center text-blue-600">
-                            <Image className="w-4 h-4 mr-1" />
+                            <FileText className="w-4 h-4 mr-1" />
                             <span className="text-xs">{option.fisier.nume}</span>
                           </div>
                         )}
