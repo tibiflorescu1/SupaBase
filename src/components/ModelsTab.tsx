@@ -440,14 +440,14 @@ export default function ModelsTab({
                 setNewAcoperiri([]);
                 setNewOptiuni([]);
               }}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="flex items-center px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <X className="w-4 h-4 mr-2" />
               Anulează
             </button>
             <button
               onClick={handleSaveVehicle}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md"
               disabled={saving}
             >
               {saving ? (
@@ -458,7 +458,7 @@ export default function ModelsTab({
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Salvează Tot
+                  {isAdding ? 'Creează Model' : 'Salvează Modificări'}
                 </>
               )}
             </button>
@@ -505,11 +505,6 @@ export default function ModelsTab({
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {vehicle.model}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {category?.nume || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {vehicle.perioadaFabricatie || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center space-x-2">
@@ -520,187 +515,23 @@ export default function ModelsTab({
                           <div className="flex items-center text-green-600" title="Conține fișiere">
                             <FileText className="w-4 h-4" />
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center space-x-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {vehicle.optiuniExtra?.length || 0}
-                        </span>
-                        {vehicle.optiuniExtra?.some(o => o.fisier) && (
-                          <div className="flex items-center text-green-600" title="Conține fișiere">
-                            <FileText className="w-4 h-4" />
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => setSelectedVehicle(vehicle.id)}
-                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Vezi detalii (doar citire)"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingVehicle(vehicle);
-                            setNewAcoperiri([]);
-                            setNewOptiuni([]);
-                          }}
-                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Editează model și conținut"
-                        >
-                          <Settings2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteVehicle(vehicle.id)}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          disabled={saving}
-                          title="Șterge"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {selectedVehicle && (
-        <VehicleViewModal
-          vehicle={data.vehicule.find(v => v.id === selectedVehicle)!}
-          onClose={() => setSelectedVehicle(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function VehicleDetailsModal({ 
-  vehicle, 
-  onClose
-}: {
-  vehicle: Vehicul;
-  onClose: () => void;
-}) {
-  const [activeTab, setActiveTab] = useState<'acoperiri' | 'optiuni'>('acoperiri');
-  const [editingCoverage, setEditingCoverage] = useState<Acoperire | null>(null);
-  const [editingOption, setEditingOption] = useState<OptiuneExtra | null>(null);
-  const [isAddingCoverage, setIsAddingCoverage] = useState(false);
-  const [isAddingOption, setIsAddingOption] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const downloadFile = (dataUrl: string, fileName: string) => {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleSaveCoverage = async () => {
-    if (editingCoverage && editingCoverage.nume && editingCoverage.pret !== undefined) {
-      try {
-        setSaving(true);
-        const coverageData: any = {
-          id: editingCoverage.id || undefined,
-          nume: editingCoverage.nume,
-          pret: editingCoverage.pret,
-          vehicul_id: vehicle.id
-        };
-        
-        // Add file if present
-        if ((editingCoverage as any).file) {
-          coverageData.file = (editingCoverage as any).file;
-        }
-        
-        await onSaveAcoperire(coverageData);
-        setEditingCoverage(null);
-        setIsAddingCoverage(false);
-      } catch (error) {
-        console.error('Error saving coverage:', error);
-        alert('Eroare la salvarea acoperirii');
-      } finally {
-        setSaving(false);
-      }
-    }
-  };
-
-  const handleSaveOption = async () => {
-    if (editingOption && editingOption.nume && editingOption.pret !== undefined) {
-      try {
-        setSaving(true);
-        const optionData: any = {
-          id: editingOption.id || undefined,
-          nume: editingOption.nume,
-          pret: editingOption.pret,
-          vehicul_id: vehicle.id
-        };
-        
-        // Add file if present
-        if ((editingOption as any).file) {
-          optionData.file = (editingOption as any).file;
-        }
-        
-        await onSaveOptiuneExtra(optionData);
-        setEditingOption(null);
-        setIsAddingOption(false);
-      } catch (error) {
-        console.error('Error saving option:', error);
-        alert('Eroare la salvarea opțiunii');
-      } finally {
-        setSaving(false);
-      }
-    }
-  };
-
-  const handleDeleteCoverage = async (id: string) => {
-    if (confirm('Ești sigur că vrei să ștergi această acoperire?')) {
-      try {
-        setSaving(true);
-        await onDeleteAcoperire(id);
-      } catch (error) {
-        console.error('Error deleting coverage:', error);
-        alert('Eroare la ștergerea acoperirii');
-      } finally {
-        setSaving(false);
-      }
-    }
-  };
-
-  const handleDeleteOption = async (id: string) => {
-    if (confirm('Ești sigur că vrei să ștergi această opțiune?')) {
-      try {
-        setSaving(true);
-        await onDeleteOptiuneExtra(id);
-      } catch (error) {
-        console.error('Error deleting option:', error);
-        alert('Eroare la ștergerea opțiunii');
-      } finally {
-        setSaving(false);
-      }
-    }
-  };
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">
-              {vehicle.producator} {vehicle.model}
-            </h3>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">
+                {vehicle.producator} {vehicle.model}
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                <Eye className="w-4 h-4 inline mr-1" />
+                Vizualizare (doar citire)
+              </p>
+            </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -708,9 +539,9 @@ function VehicleDetailsModal({
           <div className="flex space-x-4 mt-4">
             <button
               onClick={() => setActiveTab('acoperiri')}
-              className={`px-4 py-2 rounded-lg ${
+              className={`px-4 py-2 rounded-lg transition-colors ${
                 activeTab === 'acoperiri'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -718,9 +549,9 @@ function VehicleDetailsModal({
             </button>
             <button
               onClick={() => setActiveTab('optiuni')}
-              className={`px-4 py-2 rounded-lg ${
+              className={`px-4 py-2 rounded-lg transition-colors ${
                 activeTab === 'optiuni'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -732,224 +563,81 @@ function VehicleDetailsModal({
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {activeTab === 'acoperiri' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="text-lg font-medium">Acoperiri Disponibile</h4>
-                <button
-                  onClick={() => {
-                    setEditingCoverage({
-                      id: '',
-                      nume: '',
-                      pret: 0,
-                    });
-                    setIsAddingCoverage(true);
-                  }}
-                  className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adaugă Acoperire
-                </button>
-              </div>
-
-              {(editingCoverage || isAddingCoverage) && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h5 className="font-medium mb-3">
-                    {isAddingCoverage ? 'Adaugă Acoperire Nouă' : 'Editează Acoperire'}
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nume
-                      </label>
-                      <input
-                        type="text"
-                        value={editingCoverage?.nume || ''}
-                        onChange={(e) => setEditingCoverage(prev => prev ? { ...prev, nume: e.target.value } : null)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Preț (RON)
-                      </label>
-                      <input
-                        type="number"
-                        value={editingCoverage?.pret || ''}
-                        onChange={(e) => setEditingCoverage(prev => prev ? { ...prev, pret: parseFloat(e.target.value) || 0 } : null)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fișier
-                      </label>
-                      <input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setEditingCoverage(prev => prev ? { ...prev, file } as any : null);
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {editingCoverage?.fisier && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Fișier curent: {editingCoverage.fisier.nume}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2 mt-4">
-                    <button
-                      onClick={() => {
-                        setEditingCoverage(null);
-                        setIsAddingCoverage(false);
-                      }}
-                      className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      Anulează
-                    </button>
-                    <button
-                      onClick={handleSaveCoverage}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                      disabled={saving}
-                    >
-                      {saving ? 'Se salvează...' : 'Salvează'}
-                    </button>
-                  </div>
+              <h4 className="text-lg font-medium text-gray-800 mb-4">Acoperiri Disponibile</h4>
+              
+              {vehicle.acoperiri.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>Nu există acoperiri definite pentru acest model</p>
                 </div>
-              )}
-
-              <div className="space-y-2">
-                {vehicle.acoperiri.map((coverage) => (
-                  <div key={coverage.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <h6 className="font-medium">{coverage.nume}</h6>
+              ) : (
+                <div className="grid gap-3">
+                  {vehicle.acoperiri.map((coverage) => (
+                    <div key={coverage.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h6 className="font-semibold text-gray-900">{coverage.nume}</h6>
+                          <p className="text-lg font-bold text-green-600 mt-1">{coverage.pret} RON</p>
+                        </div>
                         {coverage.fisier && (
                           <button
                             onClick={() => downloadFile(coverage.fisier!.dataUrl, coverage.fisier!.nume)}
-                            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             title={`Descarcă ${coverage.fisier.nume}`}
                           >
-                            <FileText className="w-4 h-4 mr-1" />
-                            <span className="text-xs">{coverage.fisier.nume}</span>
+                            <FileText className="w-4 h-4 mr-2" />
+                            <span className="text-sm">{coverage.fisier.nume}</span>
                           </button>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-green-600">{coverage.pret} RON</p>
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setEditingCoverage(coverage)}
-                        className="p-2 text-indigo-600 hover:text-indigo-800"
-                        disabled={saving}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCoverage(coverage.id)}
-                        className="p-2 text-red-600 hover:text-red-800"
-                        disabled={saving}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
+
           {activeTab === 'optiuni' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="text-lg font-medium">Opțiuni Extra</h4>
-                <button
-                  onClick={() => {
-                    setEditingOption({
-                      id: '',
-                      nume: '',
-                      pret: 0
-                    });
-                    setIsAddingOption(true);
-                  }}
-                  className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adaugă Opțiune
-                </button>
-              </div>
-
-              {(editingOption || isAddingOption) && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h5 className="font-medium mb-3">
-                    {isAddingOption ? 'Adaugă Opțiune Nouă' : 'Editează Opțiune'}
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Nume
-                      </label>
-                      <input
-                        type="text"
-                        value={editingOption?.nume || ''}
-                        onChange={(e) => setEditingOption(prev => prev ? { ...prev, nume: e.target.value } : null)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+              <h4 className="text-lg font-medium text-gray-800 mb-4">Opțiuni Extra</h4>
+              
+              {vehicle.optiuniExtra.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Settings2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>Nu există opțiuni extra definite pentru acest model</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {vehicle.optiuniExtra.map((option) => (
+                    <div key={option.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h6 className="font-semibold text-gray-900">{option.nume}</h6>
+                          <p className="text-lg font-bold text-green-600 mt-1">{option.pret} RON</p>
+                        </div>
+                        {option.fisier && (
+                          <button
+                            onClick={() => downloadFile(option.fisier!.dataUrl, option.fisier!.nume)}
+                            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            title={`Descarcă ${option.fisier.nume}`}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            <span className="text-sm">{option.fisier.nume}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Preț (RON)
-                      </label>
-                      <input
-                        type="number"
-                        value={editingOption?.pret || ''}
-                        onChange={(e) => setEditingOption(prev => prev ? { ...prev, pret: parseFloat(e.target.value) || 0 } : null)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fișier
-                      </label>
-                      <input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setEditingOption(prev => prev ? { ...prev, file } as any : null);
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {editingOption?.fisier && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Fișier curent: {editingOption.fisier.nume}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2 mt-4">
-                    <button
-                      onClick={() => {
-                        setEditingOption(null);
-                        setIsAddingOption(false);
-                      }}
-                      className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      Anulează
-                    </button>
-                    <button
-                      onClick={handleSaveOption}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                      disabled={saving}
-                    >
-                      {saving ? 'Se salvează...' : 'Salvează'}
-                    </button>
-                  </div>
+                  ))}
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
               <div className="space-y-2">
                 {vehicle.optiuniExtra.map((option) => (
