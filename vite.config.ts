@@ -7,10 +7,21 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      input: 'index.html'
+      input: 'index.html',
+      external: [],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          papaparse: ['papaparse']
+        }
+      }
     }
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
+    include: ['papaparse']
   },
+  define: {
+    global: 'globalThis',
+  }
 });
