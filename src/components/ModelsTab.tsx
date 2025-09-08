@@ -173,9 +173,6 @@ export default function ModelsTab({
       };
       reader.readAsDataURL(file);
     });
-  }
-}
-    });
   };
 
   const filteredVehicles = data.vehicule.filter(vehicle =>
@@ -509,6 +506,12 @@ export default function ModelsTab({
                       {vehicle.model}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {category?.nume || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {vehicle.perioadaFabricatie || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center space-x-2">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {vehicle.acoperiri?.length || 0}
@@ -517,6 +520,79 @@ export default function ModelsTab({
                           <div className="flex items-center text-green-600" title="Conține fișiere">
                             <FileText className="w-4 h-4" />
                           </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {vehicle.optiuniExtra?.length || 0}
+                        </span>
+                        {vehicle.optiuniExtra?.some(o => o.fisier) && (
+                          <div className="flex items-center text-green-600" title="Conține fișiere">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => setSelectedVehicle(vehicle.id)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Vizualizează detalii"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingVehicle(vehicle);
+                            setIsAdding(false);
+                            setNewAcoperiri([]);
+                            setNewOptiuni([]);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900"
+                          disabled={saving}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteVehicle(vehicle.id)}
+                          className="text-red-600 hover:text-red-900"
+                          disabled={saving}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {selectedVehicle && (
+        <VehicleDetailsModal
+          vehicle={data.vehicule.find(v => v.id === selectedVehicle)!}
+          onClose={() => setSelectedVehicle(null)}
+          downloadFile={downloadFile}
+        />
+      )}
+    </div>
+  );
+}
+
+interface VehicleDetailsModalProps {
+  vehicle: Vehicul;
+  onClose: () => void;
+  downloadFile: (dataUrl: string, fileName: string) => void;
+}
+
+function VehicleDetailsModal({ vehicle, onClose, downloadFile }: VehicleDetailsModalProps) {
+  const [activeTab, setActiveTab] = useState<'acoperiri' | 'optiuni'>('acoperiri');
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
@@ -599,7 +675,6 @@ export default function ModelsTab({
             </div>
           )}
 
-
           {activeTab === 'optiuni' && (
             <div className="space-y-4">
               <h4 className="text-lg font-medium text-gray-800 mb-4">Opțiuni Extra</h4>
@@ -633,52 +708,6 @@ export default function ModelsTab({
                   ))}
                 </div>
               )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-              <div className="space-y-2">
-                {vehicle.optiuniExtra.map((option) => (
-                  <div key={option.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <h6 className="font-medium">{option.nume}</h6>
-                        {option.fisier && (
-                          <button
-                            onClick={() => downloadFile(option.fisier!.dataUrl, option.fisier!.nume)}
-                            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
-                            title={`Descarcă ${option.fisier.nume}`}
-                          >
-                            <FileText className="w-4 h-4 mr-1" />
-                            <span className="text-xs">{option.fisier.nume}</span>
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm font-medium text-green-600">{option.pret} RON</p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setEditingOption(option)}
-                        className="p-2 text-indigo-600 hover:text-indigo-800"
-                        disabled={saving}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteOption(option.id)}
-                        className="p-2 text-red-600 hover:text-red-800"
-                        disabled={saving}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>
