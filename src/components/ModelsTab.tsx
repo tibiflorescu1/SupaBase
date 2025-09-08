@@ -44,6 +44,15 @@ export default function ModelsTab({
   const [newAcoperiri, setNewAcoperiri] = useState<NewAcoperire[]>([]);
   const [newOptiuni, setNewOptiuni] = useState<NewOptiune[]>([]);
 
+  const downloadFile = (dataUrl: string, fileName: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSaveVehicle = async () => {
     if (editingVehicle && editingVehicle.producator && editingVehicle.model && editingVehicle.categorieId) {
       try {
@@ -278,15 +287,21 @@ export default function ModelsTab({
             {!isAdding && editingVehicle?.acoperiri.map((acoperire) => (
               <div key={acoperire.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-2">
                 <div className="flex-1">
-                  <span className="font-medium">{acoperire.nume}</span>
-                  <span className="ml-2 text-green-600">{acoperire.pret} RON</span>
-                </div>
-                {acoperire.fisier && (
-                  <div className="flex items-center text-blue-600">
-                    <FileText className="w-4 h-4 mr-1" />
-                    <span className="text-xs">{acoperire.fisier.nume}</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">{acoperire.nume}</span>
+                    <span className="text-green-600">{acoperire.pret} RON</span>
+                    {acoperire.fisier && (
+                      <button
+                        onClick={() => downloadFile(acoperire.fisier!.dataUrl, acoperire.fisier!.nume)}
+                        className="flex items-center text-blue-600 hover:text-blue-800 transition-colors text-xs"
+                        title={`Descarcă ${acoperire.fisier.nume}`}
+                      >
+                        <FileText className="w-3 h-3 mr-1" />
+                        {acoperire.fisier.nume}
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             ))}
 
@@ -350,15 +365,21 @@ export default function ModelsTab({
             {!isAdding && editingVehicle?.optiuniExtra.map((optiune) => (
               <div key={optiune.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-2">
                 <div className="flex-1">
-                  <span className="font-medium">{optiune.nume}</span>
-                  <span className="ml-2 text-green-600">{optiune.pret} RON</span>
-                </div>
-                {optiune.fisier && (
-                  <div className="flex items-center text-blue-600">
-                    <FileText className="w-4 h-4 mr-1" />
-                    <span className="text-xs">{optiune.fisier.nume}</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">{optiune.nume}</span>
+                    <span className="text-green-600">{optiune.pret} RON</span>
+                    {optiune.fisier && (
+                      <button
+                        onClick={() => downloadFile(optiune.fisier!.dataUrl, optiune.fisier!.nume)}
+                        className="flex items-center text-blue-600 hover:text-blue-800 transition-colors text-xs"
+                        title={`Descarcă ${optiune.fisier.nume}`}
+                      >
+                        <FileText className="w-3 h-3 mr-1" />
+                        {optiune.fisier.nume}
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             ))}
 
@@ -486,14 +507,28 @@ export default function ModelsTab({
                       {vehicle.perioadaFabricatie || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {vehicle.acoperiri?.length || 0}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {vehicle.acoperiri?.length || 0}
+                        </span>
+                        {vehicle.acoperiri?.some(a => a.fisier) && (
+                          <div className="flex items-center text-green-600" title="Conține fișiere">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        {vehicle.optiuniExtra?.length || 0}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {vehicle.optiuniExtra?.length || 0}
+                        </span>
+                        {vehicle.optiuniExtra?.some(o => o.fisier) && (
+                          <div className="flex items-center text-green-600" title="Conține fișiere">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
@@ -568,6 +603,15 @@ function VehicleDetailsModal({
   const [isAddingCoverage, setIsAddingCoverage] = useState(false);
   const [isAddingOption, setIsAddingOption] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const downloadFile = (dataUrl: string, fileName: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleSaveCoverage = async () => {
     if (editingCoverage && editingCoverage.nume && editingCoverage.pret !== undefined) {
@@ -765,10 +809,14 @@ function VehicleDetailsModal({
                       <div className="flex items-center space-x-2">
                         <h6 className="font-medium">{coverage.nume}</h6>
                         {coverage.fisier && (
-                          <div className="flex items-center text-blue-600">
+                          <button
+                            onClick={() => downloadFile(coverage.fisier!.dataUrl, coverage.fisier!.nume)}
+                            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                            title={`Descarcă ${coverage.fisier.nume}`}
+                          >
                             <FileText className="w-4 h-4 mr-1" />
                             <span className="text-xs">{coverage.fisier.nume}</span>
-                          </div>
+                          </button>
                         )}
                       </div>
                       <p className="text-sm font-medium text-green-600">{coverage.pret} RON</p>
@@ -881,10 +929,14 @@ function VehicleDetailsModal({
                       <div className="flex items-center space-x-2">
                         <h6 className="font-medium">{option.nume}</h6>
                         {option.fisier && (
-                          <div className="flex items-center text-blue-600">
+                          <button
+                            onClick={() => downloadFile(option.fisier!.dataUrl, option.fisier!.nume)}
+                            className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                            title={`Descarcă ${option.fisier.nume}`}
+                          </button>
                             <FileText className="w-4 h-4 mr-1" />
                             <span className="text-xs">{option.fisier.nume}</span>
-                          </div>
+                          </button>
                         )}
                       </div>
                       <p className="text-sm font-medium text-green-600">{option.pret} RON</p>
