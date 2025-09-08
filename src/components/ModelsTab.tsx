@@ -283,13 +283,22 @@ export default function ModelsTab({
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Modele Vehicule</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Adaugă Model
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={fixUnknownCategories}
+            disabled={fixingCategories}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-2 disabled:bg-gray-400"
+          >
+            {fixingCategories ? 'Se actualizează...' : 'Corectează Categorii Necunoscute'}
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Adaugă Model
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
