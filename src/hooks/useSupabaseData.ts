@@ -348,6 +348,24 @@ export function useSupabaseData() {
         if (acoperire.id) {
             const { error } = await supabase.from('acoperiri').update(dbAcoperire).eq('id', acoperire.id);
             if (error) throw error;
+            
+            // Update local state
+            setData(prevData => ({
+              ...prevData,
+              vehicule: prevData.vehicule.map(vehicul => ({
+                ...vehicul,
+                acoperiri: vehicul.acoperiri.map(ac => 
+                  ac.id === acoperire.id 
+                    ? { 
+                        ...ac, 
+                        nume: acoperire.nume, 
+                        pret: acoperire.pret,
+                        fisier: fisier_id ? { nume: (acoperire as any).file.name, dataUrl } : ac.fisier
+                      }
+                    : ac
+                )
+              }))
+            }));
         } else {
             const { error } = await supabase.from('acoperiri').insert(dbAcoperire);
             if (error) throw error;
@@ -403,6 +421,24 @@ export function useSupabaseData() {
         if (optiune.id) {
             const { error } = await supabase.from('optiuni_extra').update(dbOptiune).eq('id', optiune.id);
             if (error) throw error;
+            
+            // Update local state
+            setData(prevData => ({
+              ...prevData,
+              vehicule: prevData.vehicule.map(vehicul => ({
+                ...vehicul,
+                optiuniExtra: vehicul.optiuniExtra.map(opt => 
+                  opt.id === optiune.id 
+                    ? { 
+                        ...opt, 
+                        nume: optiune.nume, 
+                        pret: optiune.pret,
+                        fisier: fisier_id ? { nume: (optiune as any).file.name, dataUrl } : opt.fisier
+                      }
+                    : opt
+                )
+              }))
+            }));
         } else {
             const { error } = await supabase.from('optiuni_extra').insert(dbOptiune);
             if (error) throw error;
