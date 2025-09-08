@@ -172,8 +172,7 @@ export default function ModelsTab({
         resolve(e.target?.result as string);
       };
       reader.readAsDataURL(file);
-    }
-    )
+    });
   }
 }
     });
