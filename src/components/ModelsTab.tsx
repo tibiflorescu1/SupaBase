@@ -29,6 +29,7 @@ export default function ModelsTab({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
   const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
+  const [editingDetails, setEditingDetails] = useState<Vehicul | null>(null);
   const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
   const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
