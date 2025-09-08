@@ -933,7 +933,6 @@ function VehicleDetailsModal({
                             onClick={() => downloadFile(option.fisier!.dataUrl, option.fisier!.nume)}
                             className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
                             title={`Descarcă ${option.fisier.nume}`}
-                          </button>
                             <FileText className="w-4 h-4 mr-1" />
                             <span className="text-xs">{option.fisier.nume}</span>
                           </button>
