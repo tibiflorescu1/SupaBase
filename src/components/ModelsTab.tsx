@@ -589,18 +589,10 @@ export default function ModelsTab({
 
 function VehicleDetailsModal({ 
   vehicle, 
-  onClose, 
-  onSaveAcoperire, 
-  onDeleteAcoperire, 
-  onSaveOptiuneExtra, 
-  onDeleteOptiuneExtra 
+  onClose
 }: {
   vehicle: Vehicul;
   onClose: () => void;
-  onSaveAcoperire: (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }) => Promise<void>;
-  onDeleteAcoperire: (id: string) => Promise<void>;
-  onSaveOptiuneExtra: (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }) => Promise<void>;
-  onDeleteOptiuneExtra: (id: string) => Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<'acoperiri' | 'optiuni'>('acoperiri');
   const [editingCoverage, setEditingCoverage] = useState<Acoperire | null>(null);
