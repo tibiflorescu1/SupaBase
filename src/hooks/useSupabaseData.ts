@@ -367,6 +367,8 @@ export function useSupabaseData() {
                 )
               }))
             }));
+            
+            return { id: acoperire.id };
         } else {
             const { data: newAcoperire, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
             if (error) throw error;
@@ -388,6 +390,8 @@ export function useSupabaseData() {
                   : vehicul
               )
             }));
+            
+            return { id: newAcoperire.id };
         }
     } catch (err) {
         console.error('Error saving coverage:', err);
@@ -459,6 +463,8 @@ export function useSupabaseData() {
                 )
               }))
             }));
+            
+            return { id: optiune.id };
         } else {
             const { data: newOptiune, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
             if (error) throw error;
@@ -480,6 +486,8 @@ export function useSupabaseData() {
                   : vehicul
               )
             }));
+            
+            return { id: newOptiune.id };
         }
     } catch (err) {
         console.error('Error saving extra option:', err);

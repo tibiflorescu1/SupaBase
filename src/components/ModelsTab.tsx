@@ -106,10 +106,25 @@ export default function ModelsTab({
 
   const handleAddAcoperire = async (vehicleId: string) => {
     try {
-      await onSaveAcoperire({
+      const result = await onSaveAcoperire({
         ...newAcoperire,
         vehicul_id: vehicleId
       });
+      
+      // Update local editing state immediately
+      if (editingDetails && editingDetails.id === vehicleId) {
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            acoperiri: [...prev.acoperiri, {
+              id: result.id, // Use the returned ID from the save function
+              nume: newAcoperire.nume,
+              pret: newAcoperire.pret
+            }]
+          };
+        });
+      }
       
       setNewAcoperire({ nume: '', pret: 0 });
     } catch (error) {
@@ -119,10 +134,25 @@ export default function ModelsTab({
 
   const handleAddOptiune = async (vehicleId: string) => {
     try {
-      await onSaveOptiuneExtra({
+      const result = await onSaveOptiuneExtra({
         ...newOptiune,
         vehicul_id: vehicleId
       });
+      
+      // Update local editing state immediately
+      if (editingDetails && editingDetails.id === vehicleId) {
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            optiuniExtra: [...prev.optiuniExtra, {
+              id: result.id, // Use the returned ID from the save function
+              nume: newOptiune.nume,
+              pret: newOptiune.pret
+            }]
+          };
+        });
+      }
       
       setNewOptiune({ nume: '', pret: 0 });
     } catch (error) {
