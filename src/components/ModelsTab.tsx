@@ -80,6 +80,7 @@
 +        if (selectedVehicle === id) {
 +          setSelectedVehicle(null);
 +        }
+        alert('Vehiculul a fost salvat cu succes!');
 +      } catch (error) {
 +        console.error('Error deleting vehicle:', error);
 +        alert('Eroare la ștergerea vehiculului');
