@@ -21,6 +21,22 @@ export default function CategoriesTab({ data, onSaveCategorie, onDeleteCategorie
   const [importResults, setImportResults] = useState<{success: number, errors: string[]}>({success: 0, errors: []});
   const [isImporting, setIsImporting] = useState(false);
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setImportData(content);
+        // Auto-trigger import after file is loaded
+        setTimeout(() => {
+          handleImport(content);
+        }, 100);
+      };
+      reader.readAsText(file);
+    }
+  };
+
   const handleSave = async (id: string, nume: string) => {
     if (!nume.trim()) return;
     
@@ -84,14 +100,15 @@ export default function CategoriesTab({ data, onSaveCategorie, onDeleteCategorie
     document.body.removeChild(link);
   };
 
-  const handleImport = async () => {
-    if (!importData.trim()) return;
+  const handleImport = async (dataToImport?: string) => {
+    const dataToUse = dataToImport || importData;
+    if (!dataToUse.trim()) return;
     
     setIsImporting(true);
     setImportResults({success: 0, errors: []});
     
     try {
-      const parsed = Papa.parse(importData, { header: true, skipEmptyLines: true });
+      const parsed = Papa.parse(dataToUse, { header: true, skipEmptyLines: true });
       const errors: string[] = [];
       let successCount = 0;
       
@@ -332,13 +349,22 @@ export default function CategoriesTab({ data, onSaveCategorie, onDeleteCategorie
               {/* CSV Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Conținut CSV (sau copiază din Excel):
+                  Încarcă fișier CSV sau introdu conținutul manual:
                 </label>
+                <div className="mb-4">
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileUpload}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Selectează un fișier CSV pentru import automat</p>
+                </div>
                 <textarea
                   value={importData}
                   onChange={(e) => setImportData(e.target.value)}
                   className="w-full h-48 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                  placeholder="nume&#10;SUV&#10;Sedan&#10;Hatchback&#10;Coupe"
+                  placeholder="nume&#10;SUV&#10;Sedan&#10;Hatchback&#10;Coupe&#10;&#10;Sau încarcă un fișier CSV mai sus..."
                 />
               </div>
 
