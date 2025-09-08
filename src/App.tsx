@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database } from 'lucide-react';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
 import MaterialsTab from './components/MaterialsTab';
 import CalculatorTab from './components/CalculatorTab';
+import ImportExportTab from './components/ImportExportTab';
 
-type Tab = 'calculator' | 'models' | 'categories' | 'materials';
+type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
@@ -65,6 +66,7 @@ export default function App() {
     { id: 'models' as Tab, name: 'Modele', icon: Car },
     { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
     { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
+    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
   ];
 
   return (
@@ -152,6 +154,17 @@ export default function App() {
             onSaveMaterialLaminare={saveMaterialLaminare}
             onDeleteMaterialLaminare={deleteMaterialLaminare}
             onSaveSetariPrintAlb={saveSetariPrintAlb}
+          />
+        )}
+        
+        {activeTab === 'import-export' && (
+          <ImportExportTab
+            data={data}
+            onSaveVehicul={saveVehicul}
+            onSaveCategorie={saveCategorie}
+            onSaveAcoperire={saveAcoperire}
+            onSaveOptiuneExtra={saveOptiuneExtra}
+            onRefetch={refetch}
           />
         )}
       </main>
