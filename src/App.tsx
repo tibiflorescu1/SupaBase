@@ -88,6 +88,7 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <span>Vehicule: {data.vehicule.length}</span>
+              <span>Afișate: {activeTab === 'models' ? 'vezi în tab' : data.vehicule.length}</span>
               <span>Categorii: {data.categorii.length}</span>
               <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
             </div>
