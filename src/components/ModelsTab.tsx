@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Upload, FileText, Image } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, FileText, Image, Eye, Settings2 } from 'lucide-react';
 import type { AppData, Vehicul, Acoperire, OptiuneExtra } from '../hooks/useSupabaseData';
 
 interface ModelsTabProps {
@@ -539,10 +539,10 @@ export default function ModelsTab({
                       <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => setSelectedVehicle(vehicle.id)}
-                          className="p-2 text-blue-600 hover:text-blue-800"
-                          title="Vezi detalii"
+                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Vezi detalii (doar citire)"
                         >
-                          <FileText className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => {
@@ -550,14 +550,14 @@ export default function ModelsTab({
                             setNewAcoperiri([]);
                             setNewOptiuni([]);
                           }}
-                          className="p-2 text-indigo-600 hover:text-indigo-800"
-                          title="Editează"
+                          className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Editează model și conținut"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Settings2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteVehicle(vehicle.id)}
-                          className="p-2 text-red-600 hover:text-red-800"
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                           disabled={saving}
                           title="Șterge"
                         >
@@ -574,13 +574,9 @@ export default function ModelsTab({
       </div>
 
       {selectedVehicle && (
-        <VehicleDetailsModal
+        <VehicleViewModal
           vehicle={data.vehicule.find(v => v.id === selectedVehicle)!}
           onClose={() => setSelectedVehicle(null)}
-          onSaveAcoperire={onSaveAcoperire}
-          onDeleteAcoperire={onDeleteAcoperire}
-          onSaveOptiuneExtra={onSaveOptiuneExtra}
-          onDeleteOptiuneExtra={onDeleteOptiuneExtra}
         />
       )}
     </div>
