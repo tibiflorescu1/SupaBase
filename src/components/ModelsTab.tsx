@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X } from 'lucide-react';
+import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X, FileDown, FileUp } from 'lucide-react';
 import { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra, Fisier } from '../hooks/useSupabaseData';
+import Papa from 'papaparse';
 
 interface ModelsTabProps {
   data: AppData;
@@ -40,6 +41,10 @@ export default function ModelsTab({
   const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
   const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importData, setImportData] = useState<string>('');
+  const [importResults, setImportResults] = useState<{success: number, errors: string[]}>({success: 0, errors: []});
+  const [isImporting, setIsImporting] = useState(false);
 
   const filteredVehicles = data.vehicule.filter(vehicle =>
     vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -268,18 +273,155 @@ export default function ModelsTab({
     }
   };
 
+  const exportToCSV = () => {
+    const csvData = data.vehicule.map(vehicle => ({
+      producator: vehicle.producator,
+      model: vehicle.model,
+      categorie: getCategoryName(vehicle.categorieId),
+      perioada_fabricatie: vehicle.perioadaFabricatie || '',
+      acoperiri: vehicle.acoperiri.map(a => `${a.nume}:${a.pret}`).join(';'),
+      optiuni_extra: vehicle.optiuniExtra.map(o => `${o.nume}:${o.pret}`).join(';')
+    }));
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `vehicule_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImport = async () => {
+    if (!importData.trim()) return;
+    
+    setIsImporting(true);
+    setImportResults({success: 0, errors: []});
+    
+    try {
+      const parsed = Papa.parse(importData, { header: true, skipEmptyLines: true });
+      const errors: string[] = [];
+      let successCount = 0;
+      
+      for (let i = 0; i < parsed.data.length; i++) {
+        const row = parsed.data[i] as any;
+        const rowNum = i + 2; // +2 because of header and 0-based index
+        
+        try {
+          // Validate required fields
+          if (!row.producator || !row.model) {
+            errors.push(`Rândul ${rowNum}: Producător și model sunt obligatorii`);
+            continue;
+          }
+          
+          // Find or create category
+          let categorieId = '';
+          if (row.categorie) {
+            const existingCategory = data.categorii.find(c => c.nume.toLowerCase() === row.categorie.toLowerCase());
+            if (existingCategory) {
+              categorieId = existingCategory.id;
+            } else {
+              // Create new category
+              await onSaveCategorie({ nume: row.categorie });
+              // Refresh data to get new category ID
+              await onRefetch();
+              const newCategory = data.categorii.find(c => c.nume.toLowerCase() === row.categorie.toLowerCase());
+              categorieId = newCategory?.id || '';
+            }
+          }
+          
+          // Create vehicle
+          const vehiculData = {
+            producator: row.producator.trim(),
+            model: row.model.trim(),
+            categorieId: categorieId,
+            perioadaFabricatie: row.perioada_fabricatie || ''
+          };
+          
+          await onSaveVehicul(vehiculData);
+          successCount++;
+          
+        } catch (error) {
+          errors.push(`Rândul ${rowNum}: ${error instanceof Error ? error.message : 'Eroare necunoscută'}`);
+        }
+      }
+      
+      setImportResults({success: successCount, errors});
+      
+      if (successCount > 0) {
+        onRefetch();
+      }
+      
+    } catch (error) {
+      setImportResults({success: 0, errors: ['Eroare la parsarea fișierului CSV']});
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      {
+        producator: 'BMW',
+        model: 'X5',
+        categorie: 'SUV',
+        perioada_fabricatie: '2019-2024',
+        acoperiri: 'Folie transparentă:1500;Folie colorată:2000',
+        optiuni_extra: 'Decupare personalizată:300;Montaj:500'
+      },
+      {
+        producator: 'Audi',
+        model: 'A4',
+        categorie: 'Sedan',
+        perioada_fabricatie: '2020-2024',
+        acoperiri: 'Folie transparentă:1200',
+        optiuni_extra: 'Montaj:400'
+      }
+    ];
+    
+    const csv = Papa.unparse(template);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'template_import_vehicule.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Modele Vehicule</h2>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Adaugă Model
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={exportToCSV}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+          >
+            <FileDown className="w-4 h-4" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
+          >
+            <FileUp className="w-4 h-4" />
+            Import CSV
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Adaugă Model
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -949,6 +1091,112 @@ export default function ModelsTab({
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 Salvează toate modificările
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900">Import Vehicule din CSV</h3>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportData('');
+                  setImportResults({success: 0, errors: []});
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">Instrucțiuni pentru import:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Fișierul CSV trebuie să conțină coloanele: <code>producator, model, categorie, perioada_fabricatie</code></li>
+                  <li>• Coloanele <code>producator</code> și <code>model</code> sunt obligatorii</li>
+                  <li>• Categoriile noi vor fi create automat dacă nu există</li>
+                  <li>• Pentru acoperiri și opțiuni folosește formatul: <code>nume:pret;nume2:pret2</code></li>
+                </ul>
+                <div className="mt-3">
+                  <button
+                    onClick={downloadTemplate}
+                    className="text-blue-600 hover:text-blue-800 text-sm underline"
+                  >
+                    Descarcă template exemplu
+                  </button>
+                </div>
+              </div>
+
+              {/* CSV Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Conținut CSV (sau copiază din Excel):
+                </label>
+                <textarea
+                  value={importData}
+                  onChange={(e) => setImportData(e.target.value)}
+                  className="w-full h-64 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  placeholder="producator,model,categorie,perioada_fabricatie&#10;BMW,X5,SUV,2019-2024&#10;Audi,A4,Sedan,2020-2024"
+                />
+              </div>
+
+              {/* Import Results */}
+              {(importResults.success > 0 || importResults.errors.length > 0) && (
+                <div className="space-y-3">
+                  {importResults.success > 0 && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-green-800 font-medium">
+                        ✅ {importResults.success} vehicule importate cu succes!
+                      </p>
+                    </div>
+                  )}
+                  
+                  {importResults.errors.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-800 font-medium mb-2">❌ Erori la import:</p>
+                      <ul className="text-sm text-red-700 space-y-1 max-h-32 overflow-y-auto">
+                        {importResults.errors.map((error, index) => (
+                          <li key={index}>• {error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Action buttons */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportData('');
+                  setImportResults({success: 0, errors: []});
+                }}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={downloadTemplate}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Descarcă Template
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!importData.trim() || isImporting}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isImporting ? 'Se importă...' : 'Importă Vehicule'}
               </button>
             </div>
           </div>
