@@ -203,8 +203,15 @@ export default function MaterialsTab({
                     min="0"
                     value={editingPrint?.valoare || ''}
                     onChange={(e) => {
-                      const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setEditingPrint(prev => prev ? { ...prev, valoare: isNaN(value) || value < 0 ? 0 : value } : null);
+                      const inputValue = e.target.value;
+                      if (inputValue === '') {
+                        setEditingPrint(prev => prev ? { ...prev, valoare: 0 } : null);
+                      } else {
+                        const value = parseFloat(inputValue);
+                        if (!isNaN(value) && value >= 0) {
+                          setEditingPrint(prev => prev ? { ...prev, valoare: value } : null);
+                        }
+                      }
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -366,8 +373,15 @@ export default function MaterialsTab({
                     min="0"
                     value={editingLaminare?.valoare || ''}
                     onChange={(e) => {
-                      const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setEditingLaminare(prev => prev ? { ...prev, valoare: isNaN(value) || value < 0 ? 0 : value } : null);
+                      const inputValue = e.target.value;
+                      if (inputValue === '') {
+                        setEditingLaminare(prev => prev ? { ...prev, valoare: 0 } : null);
+                      } else {
+                        const value = parseFloat(inputValue);
+                        if (!isNaN(value) && value >= 0) {
+                          setEditingLaminare(prev => prev ? { ...prev, valoare: value } : null);
+                        }
+                      }
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -490,8 +504,16 @@ export default function MaterialsTab({
                     min="0"
                     value={editingSetari.valoare}
                     onChange={(e) => {
-                      const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                      setEditingSetari(prev => prev ? { ...prev, valoare: isNaN(value) || value < 0 ? 0 : value } : null);
+                      const inputValue = e.target.value;
+                      if (inputValue === '') {
+                        setEditingSetari(prev => prev ? { ...prev, valoare: 0 } : null);
+                      } else {
+                        const value = parseFloat(inputValue);
+                        if (!isNaN(value) && value >= 0) {
+                          setEditingSetari(prev => prev ? { ...prev, valoare: value } : null);
+                        }
+                      }
+                    }}
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
