@@ -135,7 +135,7 @@ export default function ModelsTab({
   const handleUpdateAcoperire = async (acoperire: Acoperire, file?: File) => {
     try {
       await onSaveAcoperire(acoperire, file);
-      onRefetch();
+      // Don't auto-refresh to keep popup open
     } catch (error) {
       console.error('Error updating acoperire:', error);
     }
@@ -144,7 +144,7 @@ export default function ModelsTab({
   const handleUpdateOptiune = async (optiune: OptiuneExtra, file?: File) => {
     try {
       await onSaveOptiuneExtra(optiune, file);
-      onRefetch();
+      // Don't auto-refresh to keep popup open
     } catch (error) {
       console.error('Error updating optiune:', error);
     }
