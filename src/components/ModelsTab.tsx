@@ -542,11 +542,26 @@ export default function ModelsTab({
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => setSelectedVehicle(vehicle.id)}
+                          onClick={() => setViewingVehicle(vehicle)}
                           className="text-blue-600 hover:text-blue-900"
                           title="Vizualizează detalii"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingVehicleDetails(vehicle)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                          disabled={saving}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingVehicleDetails(vehicle)}
+                          className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                          title="Editează model"
+                          disabled={saving}
+                        >
+                          <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => {
@@ -555,13 +570,24 @@ export default function ModelsTab({
                             setNewAcoperiri([]);
                             setNewOptiuni([]);
                           }}
-                          className="text-indigo-600 hover:text-indigo-900"
+                          className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                          title="Editează model"
                           disabled={saving}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteVehicle(vehicle.id)}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAcoperire(coverage.id)}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Șterge acoperire"
+                            disabled={saving}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                           className="text-red-600 hover:text-red-900"
                           disabled={saving}
                         >
@@ -577,10 +603,21 @@ export default function ModelsTab({
         </div>
       </div>
 
-      {selectedVehicle && (
+      {viewingVehicle && (
         <VehicleDetailsModal
-          vehicle={data.vehicule.find(v => v.id === selectedVehicle)!}
-          onClose={() => setSelectedVehicle(null)}
+          vehicle={viewingVehicle}
+          onClose={() => setViewingVehicle(null)}
+        />
+      )}
+
+      {editingVehicleDetails && (
+        <EditModal
+          vehicle={editingVehicleDetails}
+          onClose={() => setEditingVehicleDetails(null)}
+          onSaveAcoperire={onSaveAcoperire}
+          onDeleteAcoperire={onDeleteAcoperire}
+          onSaveOptiuneExtra={onSaveOptiuneExtra}
+          onDeleteOptiuneExtra={onDeleteOptiuneExtra}
           downloadFile={downloadFile}
         />
       )}
