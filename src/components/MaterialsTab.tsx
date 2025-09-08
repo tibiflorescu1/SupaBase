@@ -28,7 +28,7 @@ export default function MaterialsTab({
   const [saving, setSaving] = useState(false);
 
   const handleSavePrint = async () => {
-    if (editingPrint && editingPrint.nume && editingPrint.valoare !== undefined) {
+    if (editingPrint && editingPrint.nume && editingPrint.valoare !== undefined && editingPrint.valoare >= 0) {
       try {
         setSaving(true);
         await onSaveMaterialPrint(editingPrint);
@@ -44,7 +44,7 @@ export default function MaterialsTab({
   };
 
   const handleSaveLaminare = async () => {
-    if (editingLaminare && editingLaminare.nume && editingLaminare.valoare !== undefined) {
+    if (editingLaminare && editingLaminare.nume && editingLaminare.valoare !== undefined && editingLaminare.valoare >= 0) {
       try {
         setSaving(true);
         await onSaveMaterialLaminare(editingLaminare);
@@ -60,7 +60,7 @@ export default function MaterialsTab({
   };
 
   const handleSaveSetari = async () => {
-    if (editingSetari && editingSetari.valoare !== undefined) {
+    if (editingSetari && editingSetari.valoare !== undefined && editingSetari.valoare >= 0) {
       try {
         setSaving(true);
         await onSaveSetariPrintAlb(editingSetari);
@@ -200,8 +200,9 @@ export default function MaterialsTab({
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={editingPrint?.valoare || ''}
-                    onChange={(e) => setEditingPrint(prev => prev ? { ...prev, valoare: parseFloat(e.target.value) || 0 } : null)}
+                    onChange={(e) => setEditingPrint(prev => prev ? { ...prev, valoare: parseFloat(e.target.value) >= 0 ? parseFloat(e.target.value) : 0 } : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -359,8 +360,9 @@ export default function MaterialsTab({
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={editingLaminare?.valoare || ''}
-                    onChange={(e) => setEditingLaminare(prev => prev ? { ...prev, valoare: parseFloat(e.target.value) || 0 } : null)}
+                    onChange={(e) => setEditingLaminare(prev => prev ? { ...prev, valoare: parseFloat(e.target.value) >= 0 ? parseFloat(e.target.value) : 0 } : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -479,8 +481,9 @@ export default function MaterialsTab({
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={editingSetari.valoare}
-                    onChange={(e) => setEditingSetari(prev => prev ? { ...prev, valoare: parseFloat(e.target.value) || 0 } : null)}
+                    onChange={(e) => setEditingSetari(prev => prev ? { ...prev, valoare: parseFloat(e.target.value) >= 0 ? parseFloat(e.target.value) : 0 } : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

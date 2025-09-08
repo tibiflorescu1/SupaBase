@@ -823,6 +823,26 @@ export default function ModelsTab({
                 </div>
               </div>
             </div>
+            
+            {/* Save/Cancel buttons for editing details */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingDetails(null)}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={() => {
+                  // Save changes and close modal
+                  setEditingDetails(null);
+                  onRefetch();
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Salvează toate modificările
+              </button>
+            </div>
           </div>
         </div>
       )}
