@@ -274,7 +274,7 @@ export function useSupabaseData() {
       const dbVehicul = {
         producator: vehicul.producator,
         model: vehicul.model,
-        categorie_id: vehicul.categorieId,
+        categorie_id: vehicul.categorieId || null,
         perioada_fabricatie: vehicul.perioadaFabricatie,
         updated_at: new Date().toISOString()
       };
