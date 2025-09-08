@@ -26,8 +26,8 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
     const filteredVehicles = useMemo(() => {
         return data.vehicule.filter(vehicle => {
             const searchMatch = searchTerm === '' || 
-                vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
+                (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()));
             const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
             const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
             return searchMatch && categoryMatch && producerMatch;
@@ -37,9 +37,9 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
     // Get unique producers for filter dropdown
     const uniqueProducers = useMemo(() => {
         const producers = selectedCategory === '' 
-            ? data.vehicule.map(v => v.producator)
-            : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator);
-        return [...new Set(producers)].sort();
+            ? data.vehicule.map(v => v.producator).filter(Boolean)
+            : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator).filter(Boolean);
+        return [...new Set(producers)].filter(p => p && p.trim() !== '').sort();
     }, [data.vehicule, selectedCategory]);
 
     // Get category name helper
