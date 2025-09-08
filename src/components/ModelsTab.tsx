@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useMemo } from 'react';
 import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X } from 'lucide-react';
 import { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra, Fisier } from '../hooks/useSupabaseData';
 
@@ -39,11 +38,15 @@ export default function ModelsTab({
   });
 
   const filteredVehicles = data.vehicule.filter(vehicle => {
+    // Search filter - check if search term matches producer or model
     const searchMatch = searchTerm === '' || 
       (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()));
     
+    // Category filter - match selected category or show all if none selected
     const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
+    
+    // Producer filter - match selected producer or show all if none selected
     const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
     
     return searchMatch && categoryMatch && producerMatch;
@@ -54,12 +57,12 @@ export default function ModelsTab({
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
   // Get unique producers for filter dropdown
-  const uniqueProducers = useMemo(() => {
+  const uniqueProducers = (() => {
     const producers = selectedCategory === '' 
       ? data.vehicule.map(v => v.producator).filter(Boolean)
       : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator).filter(Boolean);
     return [...new Set(producers)].filter(p => p && p.trim() !== '').sort();
-  }, [data.vehicule, selectedCategory]);
+  })();
 
   const getCategoryName = (categoryId: string) => {
     const category = data.categorii.find(c => c.id === categoryId);
