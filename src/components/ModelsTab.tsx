@@ -285,7 +285,6 @@ export default function ModelsTab({
         <h2 className="text-2xl font-bold text-gray-900">Modele Vehicule</h2>
         <div className="flex gap-3">
           <button
-            onClick={fixUnknownCategories}
             disabled={fixingCategories}
             className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-2 disabled:bg-gray-400"
           >
