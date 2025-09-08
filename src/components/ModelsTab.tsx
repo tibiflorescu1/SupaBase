@@ -728,6 +728,7 @@ function VehicleDetailsModal({ vehicle, onClose, downloadFile }: VehicleDetailsM
                           </button>
                         </div>
                       </div>
+                      </div>
                     </div>
                   ))}
                 </div>
