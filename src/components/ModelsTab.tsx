@@ -132,8 +132,23 @@ export default function ModelsTab({
 
   const handleUpdateAcoperire = async (acoperire: Acoperire, file?: File) => {
     try {
-      await onSaveAcoperire(acoperire, file);
-      // Don't auto-refresh to keep popup open
+      if (file) {
+        // Only call the save function if there's a file to upload
+        await onSaveAcoperire(acoperire, file);
+      } else {
+        // For text changes, update local state immediately
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            acoperiri: prev.acoperiri.map(ac => 
+              ac.id === acoperire.id ? acoperire : ac
+            )
+          };
+        });
+        // Also save to database
+        await onSaveAcoperire(acoperire);
+      }
     } catch (error) {
       console.error('Error updating acoperire:', error);
     }
@@ -141,8 +156,23 @@ export default function ModelsTab({
 
   const handleUpdateOptiune = async (optiune: OptiuneExtra, file?: File) => {
     try {
-      await onSaveOptiuneExtra(optiune, file);
-      // Don't auto-refresh to keep popup open
+      if (file) {
+        // Only call the save function if there's a file to upload
+        await onSaveOptiuneExtra(optiune, file);
+      } else {
+        // For text changes, update local state immediately
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            optiuniExtra: prev.optiuniExtra.map(opt => 
+              opt.id === optiune.id ? optiune : opt
+            )
+          };
+        });
+        // Also save to database
+        await onSaveOptiuneExtra(optiune);
+      }
     } catch (error) {
       console.error('Error updating optiune:', error);
     }
