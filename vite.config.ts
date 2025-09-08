@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  root: '.',
   plugins: [react()],
   build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
     rollupOptions: {
-      external: [],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
@@ -17,8 +17,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ['lucide-react'],
-    include: ['papaparse']
+    include: ['papaparse', '@supabase/supabase-js']
   },
   define: {
     global: 'globalThis',

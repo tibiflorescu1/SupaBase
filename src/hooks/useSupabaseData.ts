@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { 
-  DatabaseCategorie, 
-  DatabaseVehicul, 
-  DatabaseAcoperire, 
-  DatabaseOptiuneExtra,
-  DatabaseMaterialPrint,
-  DatabaseMaterialLaminare,
-  DatabaseSetariPrintAlb,
-  DatabaseFisier
-} from '../lib/supabase';
+import type { Database } from '../lib/database.types';
+
+// Database types from Supabase
+type DatabaseCategorie = Database['public']['Tables']['categorii']['Row'];
+type DatabaseVehicul = Database['public']['Tables']['vehicule']['Row'];
+type DatabaseAcoperire = Database['public']['Tables']['acoperiri']['Row'];
+type DatabaseOptiuneExtra = Database['public']['Tables']['optiuni_extra']['Row'];
+type DatabaseMaterialPrint = Database['public']['Tables']['materiale_print']['Row'];
+type DatabaseMaterialLaminare = Database['public']['Tables']['materiale_laminare']['Row'];
+type DatabaseSetariPrintAlb = Database['public']['Tables']['setari_print_alb']['Row'];
+type DatabaseFisier = Database['public']['Tables']['fisiere']['Row'];
 
 // Transform database types to app types
 export interface Fisier {

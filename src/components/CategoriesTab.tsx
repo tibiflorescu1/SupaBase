@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, X, FileDown, FileUp } from 'lucide-react';
 import type { AppData, Categorie } from '../hooks/useSupabaseData';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 
 interface CategoriesTabProps {
   data: AppData;
