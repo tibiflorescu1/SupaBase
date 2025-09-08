@@ -314,6 +314,166 @@ export function useSupabaseData() {
     }
   };
 
+  const saveAcoperire = async (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }) => {
+    try {
+        const dbAcoperire = {
+            nume: acoperire.nume,
+            pret: acoperire.pret,
+            vehicul_id: acoperire.vehicul_id,
+            updated_at: new Date().toISOString()
+        };
+
+        if (acoperire.id) {
+            const { error } = await supabase.from('acoperiri').update(dbAcoperire).eq('id', acoperire.id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabase.from('acoperiri').insert(dbAcoperire);
+            if (error) throw error;
+        }
+        await loadData();
+    } catch (err) {
+        console.error('Error saving coverage:', err);
+        throw err;
+    }
+  };
+
+  const deleteAcoperire = async (id: string) => {
+      try {
+          const { error } = await supabase.from('acoperiri').delete().eq('id', id);
+          if (error) throw error;
+          await loadData();
+      } catch (err) {
+          console.error('Error deleting coverage:', err);
+          throw err;
+      }
+  };
+
+  const saveOptiuneExtra = async (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }) => {
+    try {
+        const dbOptiune = {
+            nume: optiune.nume,
+            pret: optiune.pret,
+            vehicul_id: optiune.vehicul_id,
+            updated_at: new Date().toISOString()
+        };
+
+        if (optiune.id) {
+            const { error } = await supabase.from('optiuni_extra').update(dbOptiune).eq('id', optiune.id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabase.from('optiuni_extra').insert(dbOptiune);
+            if (error) throw error;
+        }
+        await loadData();
+    } catch (err) {
+        console.error('Error saving extra option:', err);
+        throw err;
+    }
+  };
+
+  const deleteOptiuneExtra = async (id: string) => {
+      try {
+          const { error } = await supabase.from('optiuni_extra').delete().eq('id', id);
+          if (error) throw error;
+          await loadData();
+      } catch (err) {
+          console.error('Error deleting extra option:', err);
+          throw err;
+      }
+  };
+
+  const saveMaterialPrint = async (material: Omit<MaterialPrint, 'id'> & { id?: string }) => {
+      try {
+          const dbMaterial = {
+              nume: material.nume,
+              tip_calcul: material.tipCalcul,
+              valoare: material.valoare,
+              permite_print_alb: material.permitePrintAlb,
+              updated_at: new Date().toISOString()
+          };
+          if (material.id) {
+              const { error } = await supabase.from('materiale_print').update(dbMaterial).eq('id', material.id);
+              if (error) throw error;
+          } else {
+              const { error } = await supabase.from('materiale_print').insert(dbMaterial);
+              if (error) throw error;
+          }
+          await loadData();
+      } catch (err) {
+          console.error('Error saving print material:', err);
+          throw err;
+      }
+  };
+
+  const deleteMaterialPrint = async (id: string) => {
+      try {
+          const { error } = await supabase.from('materiale_print').delete().eq('id', id);
+          if (error) throw error;
+          await loadData();
+      } catch (err) {
+          console.error('Error deleting print material:', err);
+          throw err;
+      }
+  };
+
+  const saveMaterialLaminare = async (material: Omit<MaterialLaminare, 'id'> & { id?: string }) => {
+      try {
+          const dbMaterial = {
+              nume: material.nume,
+              tip_calcul: material.tipCalcul,
+              valoare: material.valoare,
+              updated_at: new Date().toISOString()
+          };
+          if (material.id) {
+              const { error } = await supabase.from('materiale_laminare').update(dbMaterial).eq('id', material.id);
+              if (error) throw error;
+          } else {
+              const { error } = await supabase.from('materiale_laminare').insert(dbMaterial);
+              if (error) throw error;
+          }
+          await loadData();
+      } catch (err) {
+          console.error('Error saving lamination material:', err);
+          throw err;
+      }
+  };
+
+  const deleteMaterialLaminare = async (id: string) => {
+      try {
+          const { error } = await supabase.from('materiale_laminare').delete().eq('id', id);
+          if (error) throw error;
+          await loadData();
+      } catch (err) {
+          console.error('Error deleting lamination material:', err);
+          throw err;
+      }
+  };
+
+  const saveSetariPrintAlb = async (setari: SetariPrintAlb) => {
+      try {
+          const { data: existing, error: fetchError } = await supabase.from('setari_print_alb').select('id').limit(1);
+          if (fetchError) throw fetchError;
+
+          const dbSetari = {
+              tip_calcul: setari.tipCalcul,
+              valoare: setari.valoare,
+              updated_at: new Date().toISOString()
+          };
+
+          if (existing && existing.length > 0) {
+              const { error } = await supabase.from('setari_print_alb').update(dbSetari).eq('id', existing[0].id);
+              if (error) throw error;
+          } else {
+              const { error } = await supabase.from('setari_print_alb').insert(dbSetari);
+              if (error) throw error;
+          }
+          await loadData();
+      } catch (err) {
+          console.error('Error saving white print settings:', err);
+          throw err;
+      }
+  };
+
   // Load data on mount
   useEffect(() => {
     loadData();
@@ -327,6 +487,15 @@ export function useSupabaseData() {
     saveCategorie,
     deleteCategorie,
     saveVehicul,
-    deleteVehicul
+    deleteVehicul,
+    saveAcoperire,
+    deleteAcoperire,
+    saveOptiuneExtra,
+    deleteOptiuneExtra,
+    saveMaterialPrint,
+    deleteMaterialPrint,
+    saveMaterialLaminare,
+    deleteMaterialLaminare,
+    saveSetariPrintAlb
   };
 }
