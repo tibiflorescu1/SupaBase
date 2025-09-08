@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Car, Settings, Package, Palette, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { Car, Settings, Package, Palette, FileText, Loader2, AlertCircle } from 'lucide-react';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
-import { loadData, saveData } from './lib/localStorage';
-import type { AppData } from './types';
+import { useSupabaseData } from './hooks/useSupabaseData';
 
 type Tab = 'models' | 'categories' | 'materials' | 'settings' | 'pricing';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('models');
-  const [data, setData] = useState<AppData>(() => loadData());
+  const { data, loading, error, refetch, saveCategorie, deleteCategorie, saveVehicul, deleteVehicul } = useSupabaseData();
 
   const tabs = [
     { id: 'models' as Tab, label: 'Modele Vehicule', icon: Car },
@@ -19,14 +18,35 @@ export default function App() {
     { id: 'pricing' as Tab, label: 'Calculare Preț', icon: FileText },
   ];
 
-  // Save data whenever it changes
-  useEffect(() => {
-    saveData(data);
-  }, [data]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Se încarcă datele...</h2>
+          <p className="text-gray-600">Conectare la baza de date Supabase</p>
+        </div>
+      </div>
+    );
+  }
 
-  const updateData = (newData: AppData) => {
-    setData(newData);
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Eroare de conexiune</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Încearcă din nou
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,7 +61,7 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Data salvată local</span>
+              <span>Conectat la Supabase</span>
             </div>
           </div>
         </div>
@@ -70,10 +90,20 @@ export default function App() {
 
         <div className="bg-white rounded-lg shadow-sm">
           {activeTab === 'categories' && (
-            <CategoriesTab data={data} onUpdateData={updateData} />
+            <CategoriesTab 
+              data={data} 
+              onSaveCategorie={saveCategorie}
+              onDeleteCategorie={deleteCategorie}
+              onRefetch={refetch}
+            />
           )}
           {activeTab === 'models' && (
-            <ModelsTab data={data} onUpdateData={updateData} />
+            <ModelsTab 
+              data={data} 
+              onSaveVehicul={saveVehicul}
+              onDeleteVehicul={deleteVehicul}
+              onRefetch={refetch}
+            />
           )}
           {activeTab === 'materials' && (
             <div className="p-6">
