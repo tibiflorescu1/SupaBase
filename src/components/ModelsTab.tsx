@@ -29,6 +29,9 @@ export default function ModelsTab({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
   const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
+  const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
+  const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
   const [editingDetails, setEditingDetails] = useState<Vehicul | null>(null);
   const [newVehicle, setNewVehicle] = useState({
     producator: '',
@@ -38,34 +41,29 @@ export default function ModelsTab({
   });
 
   const filteredVehicles = data.vehicule.filter(vehicle => {
-    // Search filter - check if search term matches producer or model
     const searchMatch = searchTerm === '' || 
       (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Category filter - match selected category or show all if none selected
     const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
-    
-    // Producer filter - match selected producer or show all if none selected
     const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
     
     return searchMatch && categoryMatch && producerMatch;
-  });
-
-  const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
-  const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
-  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  }).filter(vehicle =>
+    vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
+  ).filter(vehicle =>
+    selectedCategory === '' || vehicle.categorieId === selectedCategory
+  ).filter(vehicle =>
+    selectedProducer === '' || vehicle.producator === selectedProducer
+  );
 
   // Get unique producers for filter dropdown
-  const uniqueProducers = (() => {
-    const producers = selectedCategory === '' 
-      ? data.vehicule.map(v => v.producator).filter(Boolean)
-      : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator).filter(Boolean);
-    return [...new Set(producers)].filter(p => p && p.trim() !== '').sort();
-  })();
+  const uniqueProducers = [...new Set(data.vehicule.map(v => v.producator))].sort();
 
+  // Get category name helper
   const getCategoryName = (categoryId: string) => {
-    const category = data.categorii.find(c => c.id === categoryId);
+    const category = data.categorii.find(cat => cat.id === categoryId);
     return category ? category.nume : 'Necunoscută';
   };
 
