@@ -352,7 +352,6 @@ export function useSupabaseData() {
             const { error } = await supabase.from('acoperiri').insert(dbAcoperire);
             if (error) throw error;
         }
-        await loadData();
     } catch (err) {
         console.error('Error saving coverage:', err);
         throw err;
@@ -408,7 +407,6 @@ export function useSupabaseData() {
             const { error } = await supabase.from('optiuni_extra').insert(dbOptiune);
             if (error) throw error;
         }
-        await loadData();
     } catch (err) {
         console.error('Error saving extra option:', err);
         throw err;
