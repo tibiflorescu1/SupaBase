@@ -316,10 +316,32 @@ export function useSupabaseData() {
 
   const saveAcoperire = async (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }) => {
     try {
+        let fisier_id = null;
+        
+        // Handle file upload if present
+        if ((acoperire as any).file) {
+            const file = (acoperire as any).file;
+            const reader = new FileReader();
+            const dataUrl = await new Promise<string>((resolve) => {
+                reader.onload = (e) => resolve(e.target?.result as string);
+                reader.readAsDataURL(file);
+            });
+            
+            const { data: fileData, error: fileError } = await supabase
+                .from('fisiere')
+                .insert({ nume: file.name, data_url: dataUrl })
+                .select()
+                .single();
+            
+            if (fileError) throw fileError;
+            fisier_id = fileData.id;
+        }
+
         const dbAcoperire = {
             nume: acoperire.nume,
             pret: acoperire.pret,
             vehicul_id: acoperire.vehicul_id,
+            fisier_id: fisier_id,
             updated_at: new Date().toISOString()
         };
 
@@ -350,10 +372,32 @@ export function useSupabaseData() {
 
   const saveOptiuneExtra = async (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }) => {
     try {
+        let fisier_id = null;
+        
+        // Handle file upload if present
+        if ((optiune as any).file) {
+            const file = (optiune as any).file;
+            const reader = new FileReader();
+            const dataUrl = await new Promise<string>((resolve) => {
+                reader.onload = (e) => resolve(e.target?.result as string);
+                reader.readAsDataURL(file);
+            });
+            
+            const { data: fileData, error: fileError } = await supabase
+                .from('fisiere')
+                .insert({ nume: file.name, data_url: dataUrl })
+                .select()
+                .single();
+            
+            if (fileError) throw fileError;
+            fisier_id = fileData.id;
+        }
+
         const dbOptiune = {
             nume: optiune.nume,
             pret: optiune.pret,
             vehicul_id: optiune.vehicul_id,
+            fisier_id: fisier_id,
             updated_at: new Date().toISOString()
         };
 

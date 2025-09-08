@@ -67,16 +67,19 @@ export default function ModelsTab({
           perioadaFabricatie: editingVehicle.perioadaFabricatie
         });
 
-        // If it's a new vehicle, we need to get the created vehicle ID
-        // For now, we'll refetch data and find the vehicle
-        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
-        
-        // Find the vehicle (for new vehicles, we'll need to match by name)
+        // Get the vehicle ID - for new vehicles, we need to find it after creation
         let vehicleId = editingVehicle.id;
-        if (!vehicleId || isAdding) {
-          // Refetch to get the new vehicle ID
-          const response = await fetch('/api/vehicles'); // This would need to be implemented
-          // For now, we'll assume the vehicle was created successfully
+        if (isAdding) {
+          // Refetch data to get the new vehicle ID
+          await onRefetch();
+          // Find the newly created vehicle by matching producer and model
+          const updatedData = await new Promise(resolve => setTimeout(() => resolve(data), 100));
+          const newVehicle = data.vehicule.find(v => 
+            v.producator === editingVehicle.producator && 
+            v.model === editingVehicle.model &&
+            v.categorieId === editingVehicle.categorieId
+          );
+          vehicleId = newVehicle?.id || editingVehicle.id;
         }
 
         // Save new acoperiri if any
@@ -85,7 +88,8 @@ export default function ModelsTab({
             await onSaveAcoperire({
               nume: acoperire.nume,
               pret: acoperire.pret,
-              vehicul_id: vehicleId || editingVehicle.id
+              vehicul_id: vehicleId,
+              file: acoperire.file
             });
           }
         }
@@ -96,7 +100,8 @@ export default function ModelsTab({
             await onSaveOptiuneExtra({
               nume: optiune.nume,
               pret: optiune.pret,
-              vehicul_id: vehicleId || editingVehicle.id
+              vehicul_id: vehicleId,
+              file: optiune.file
             });
           }
         }
@@ -617,12 +622,19 @@ function VehicleDetailsModal({
     if (editingCoverage && editingCoverage.nume && editingCoverage.pret !== undefined) {
       try {
         setSaving(true);
-        await onSaveAcoperire({
+        const coverageData: any = {
           id: editingCoverage.id || undefined,
           nume: editingCoverage.nume,
           pret: editingCoverage.pret,
           vehicul_id: vehicle.id
-        });
+        };
+        
+        // Add file if present
+        if ((editingCoverage as any).file) {
+          coverageData.file = (editingCoverage as any).file;
+        }
+        
+        await onSaveAcoperire(coverageData);
         setEditingCoverage(null);
         setIsAddingCoverage(false);
       } catch (error) {
@@ -638,12 +650,19 @@ function VehicleDetailsModal({
     if (editingOption && editingOption.nume && editingOption.pret !== undefined) {
       try {
         setSaving(true);
-        await onSaveOptiuneExtra({
+        const optionData: any = {
           id: editingOption.id || undefined,
           nume: editingOption.nume,
           pret: editingOption.pret,
           vehicul_id: vehicle.id
-        });
+        };
+        
+        // Add file if present
+        if ((editingOption as any).file) {
+          optionData.file = (editingOption as any).file;
+        }
+        
+        await onSaveOptiuneExtra(optionData);
         setEditingOption(null);
         setIsAddingOption(false);
       } catch (error) {
@@ -773,12 +792,23 @@ function VehicleDetailsModal({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fișier Imagine
+                        Fișier
                       </label>
                       <input
                         type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setEditingCoverage(prev => prev ? { ...prev, file } as any : null);
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
+                      {editingCoverage?.fisier && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Fișier curent: {editingCoverage.fisier.nume}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2 mt-4">
@@ -893,12 +923,23 @@ function VehicleDetailsModal({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fișier Imagine
+                        Fișier
                       </label>
                       <input
                         type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setEditingOption(prev => prev ? { ...prev, file } as any : null);
+                          }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
+                      {editingOption?.fisier && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Fișier curent: {editingOption.fisier.nume}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2 mt-4">
