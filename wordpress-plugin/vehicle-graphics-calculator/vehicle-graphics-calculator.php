@@ -148,64 +148,84 @@ class VehicleGraphicsCalculator {
             wp_send_json_error('WooCommerce nu este activ');
         }
         
-        $vehicle_id = intval($_POST['vehicle_id']);
-        $coverage_id = intval($_POST['coverage_id']);
-        $extra_options = isset($_POST['extra_options']) ? array_map('intval', $_POST['extra_options']) : array();
-        $print_material_id = intval($_POST['print_material_id']);
-        $lamination_material_id = intval($_POST['lamination_material_id']);
+        // Get data from Supabase
+        $supabase = new VGC_Supabase_Client();
+        $data = $supabase->get_calculator_data();
+        
+        if (is_wp_error($data)) {
+            wp_send_json_error('Eroare la preluarea datelor: ' . $data->get_error_message());
+        }
+        
+        $vehicle_id = sanitize_text_field($_POST['vehicle_id']);
+        $coverage_id = sanitize_text_field($_POST['coverage_id']);
+        $extra_options = isset($_POST['extra_options']) ? array_map('sanitize_text_field', $_POST['extra_options']) : array();
+        $print_material_id = sanitize_text_field($_POST['print_material_id']);
+        $lamination_material_id = sanitize_text_field($_POST['lamination_material_id']);
         $white_print = isset($_POST['white_print']) ? true : false;
         $total_price = floatval($_POST['total_price']);
         
-        global $wpdb;
+        // Find vehicle and coverage from Supabase data
+        $vehicle = null;
+        $coverage = null;
+        $selected_extra_options = array();
         
-        // Get vehicle and coverage details
-        $vehicle = $wpdb->get_row($wpdb->prepare("
-            SELECT v.*, c.nume as category_name 
-            FROM {$wpdb->prefix}vgc_vehicles v 
-            LEFT JOIN {$wpdb->prefix}vgc_categories c ON v.category_id = c.id 
-            WHERE v.id = %d
-        ", $vehicle_id));
-        
-        $coverage = $wpdb->get_row($wpdb->prepare("
-            SELECT * FROM {$wpdb->prefix}vgc_coverages WHERE id = %d
-        ", $coverage_id));
+        foreach ($data['vehicles'] as $v) {
+            if ($v['id'] === $vehicle_id) {
+                $vehicle = $v;
+                
+                // Find coverage
+                foreach ($v['coverages'] as $c) {
+                    if ($c['id'] === $coverage_id) {
+                        $coverage = $c;
+                        break;
+                    }
+                }
+                
+                // Find selected extra options
+                foreach ($v['extra_options'] as $option) {
+                    if (in_array($option['id'], $extra_options)) {
+                        $selected_extra_options[] = $option;
+                    }
+                }
+                break;
+            }
+        }
         
         if (!$vehicle || !$coverage) {
             wp_send_json_error('Vehicul sau acoperire invalidă');
         }
         
+        // Find materials
+        $print_material = null;
+        $lamination_material = null;
+        
+        foreach ($data['print_materials'] as $material) {
+            if ($material['id'] === $print_material_id) {
+                $print_material = $material;
+                break;
+            }
+        }
+        
+        foreach ($data['lamination_materials'] as $material) {
+            if ($material['id'] === $lamination_material_id) {
+                $lamination_material = $material;
+                break;
+            }
+        }
+        
         // Create product title
         $product_title = sprintf(
             'Grafică %s %s - %s',
-            $vehicle->producer,
-            $vehicle->model,
-            $coverage->name
+            $vehicle['producator'],
+            $vehicle['model'],
+            $coverage['nume']
         );
-        
-        // Get extra options details
-        $extra_options_details = array();
-        if (!empty($extra_options)) {
-            $placeholders = implode(',', array_fill(0, count($extra_options), '%d'));
-            $extra_options_details = $wpdb->get_results($wpdb->prepare("
-                SELECT * FROM {$wpdb->prefix}vgc_extra_options 
-                WHERE id IN ($placeholders)
-            ", $extra_options));
-        }
-        
-        // Get materials
-        $print_material = $wpdb->get_row($wpdb->prepare("
-            SELECT * FROM {$wpdb->prefix}vgc_print_materials WHERE id = %d
-        ", $print_material_id));
-        
-        $lamination_material = $wpdb->get_row($wpdb->prepare("
-            SELECT * FROM {$wpdb->prefix}vgc_lamination_materials WHERE id = %d
-        ", $lamination_material_id));
         
         // Create custom product data
         $cart_item_data = array(
             'vgc_vehicle' => $vehicle,
             'vgc_coverage' => $coverage,
-            'vgc_extra_options' => $extra_options_details,
+            'vgc_extra_options' => $selected_extra_options,
             'vgc_print_material' => $print_material,
             'vgc_lamination_material' => $lamination_material,
             'vgc_white_print' => $white_print,
@@ -326,18 +346,18 @@ if (class_exists('WooCommerce')) {
             
             $item_data[] = array(
                 'key' => 'Vehicul',
-                'value' => $vehicle->producer . ' ' . $vehicle->model
+                'value' => $vehicle['producator'] . ' ' . $vehicle['model']
             );
             
             $item_data[] = array(
                 'key' => 'Acoperire',
-                'value' => $coverage->name
+                'value' => $coverage['nume']
             );
             
             if (!empty($cart_item['vgc_extra_options'])) {
                 $options = array();
                 foreach ($cart_item['vgc_extra_options'] as $option) {
-                    $options[] = $option->name;
+                    $options[] = $option['nume'];
                 }
                 $item_data[] = array(
                     'key' => 'Opțiuni Extra',
@@ -347,12 +367,12 @@ if (class_exists('WooCommerce')) {
             
             $item_data[] = array(
                 'key' => 'Material Print',
-                'value' => $cart_item['vgc_print_material']->name
+                'value' => $cart_item['vgc_print_material']['nume']
             );
             
             $item_data[] = array(
                 'key' => 'Material Laminare',
-                'value' => $cart_item['vgc_lamination_material']->name
+                'value' => $cart_item['vgc_lamination_material']['nume']
             );
             
             if ($cart_item['vgc_white_print']) {
@@ -378,9 +398,9 @@ if (class_exists('WooCommerce')) {
                 
                 $product_name = sprintf(
                     'Grafică %s %s - %s',
-                    $vehicle->producer,
-                    $vehicle->model,
-                    $coverage->name
+                    $vehicle['producator'],
+                    $vehicle['model'],
+                    $coverage['nume']
                 );
                 
                 $cart_item['data']->set_name($product_name);
@@ -396,19 +416,19 @@ if (class_exists('WooCommerce')) {
             $vehicle = $values['vgc_vehicle'];
             $coverage = $values['vgc_coverage'];
             
-            $item->add_meta_data('Vehicul', $vehicle->producer . ' ' . $vehicle->model);
-            $item->add_meta_data('Acoperire', $coverage->name);
+            $item->add_meta_data('Vehicul', $vehicle['producator'] . ' ' . $vehicle['model']);
+            $item->add_meta_data('Acoperire', $coverage['nume']);
             
             if (!empty($values['vgc_extra_options'])) {
                 $options = array();
                 foreach ($values['vgc_extra_options'] as $option) {
-                    $options[] = $option->name;
+                    $options[] = $option['nume'];
                 }
                 $item->add_meta_data('Opțiuni Extra', implode(', ', $options));
             }
             
-            $item->add_meta_data('Material Print', $values['vgc_print_material']->name);
-            $item->add_meta_data('Material Laminare', $values['vgc_lamination_material']->name);
+            $item->add_meta_data('Material Print', $values['vgc_print_material']['nume']);
+            $item->add_meta_data('Material Laminare', $values['vgc_lamination_material']['nume']);
             
             if ($values['vgc_white_print']) {
                 $item->add_meta_data('Print cu Alb', 'Da');
