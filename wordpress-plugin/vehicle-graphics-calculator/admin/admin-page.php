@@ -12,11 +12,22 @@ if (!defined('ABSPATH')) {
             <div class="vgc-admin-card">
                 <h3>📊 Statistici</h3>
                 <?php
-                global $wpdb;
-                $vehicles_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}vgc_vehicles");
-                $categories_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}vgc_categories");
-                $coverages_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}vgc_coverages");
-                $options_count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}vgc_extra_options");
+                $supabase = new VGC_Supabase_Client();
+                $data = $supabase->get_calculator_data();
+                
+                if (is_wp_error($data)) {
+                    echo '<p style="color: red;">❌ Nu s-a putut conecta la Supabase</p>';
+                    echo '<p><a href="' . admin_url('admin.php?page=vgc-supabase') . '">Configurează conexiunea</a></p>';
+                } else {
+                    $vehicles_count = count($data['vehicles']);
+                    $categories_count = count($data['categories']);
+                    $coverages_count = 0;
+                    $options_count = 0;
+                    
+                    foreach ($data['vehicles'] as $vehicle) {
+                        $coverages_count += count($vehicle['coverages']);
+                        $options_count += count($vehicle['extra_options']);
+                    }
                 ?>
                 <ul>
                     <li><strong>Vehicule:</strong> <?php echo $vehicles_count; ?></li>
@@ -24,6 +35,7 @@ if (!defined('ABSPATH')) {
                     <li><strong>Acoperiri:</strong> <?php echo $coverages_count; ?></li>
                     <li><strong>Opțiuni extra:</strong> <?php echo $options_count; ?></li>
                 </ul>
+                <?php } ?>
             </div>
             
             <div class="vgc-admin-card">
@@ -42,7 +54,22 @@ if (!defined('ABSPATH')) {
             </div>
             
             <div class="vgc-admin-card">
-                <h3>🛒 WooCommerce</h3>
+                <h3>🔗 Conexiuni</h3>
+                <?php
+                $supabase_url = get_option('vgc_supabase_url', '');
+                $supabase_key = get_option('vgc_supabase_key', '');
+                ?>
+                
+                <h4>Supabase</h4>
+                <?php if (!empty($supabase_url) && !empty($supabase_key)): ?>
+                    <p style="color: green;">✅ Supabase configurat</p>
+                    <p><a href="<?php echo admin_url('admin.php?page=vgc-supabase'); ?>">Gestionează setările</a></p>
+                <?php else: ?>
+                    <p style="color: red;">❌ Supabase nu este configurat</p>
+                    <p><a href="<?php echo admin_url('admin.php?page=vgc-supabase'); ?>" class="button button-primary">Configurează acum</a></p>
+                <?php endif; ?>
+                
+                <h4>WooCommerce</h4>
                 <?php if (class_exists('WooCommerce')): ?>
                     <p style="color: green;">✅ WooCommerce este activ</p>
                     <p>Calculatorul va permite adăugarea produselor în coș.</p>
@@ -55,13 +82,13 @@ if (!defined('ABSPATH')) {
             <div class="vgc-admin-card">
                 <h3>⚙️ Acțiuni rapide</h3>
                 <p>
-                    <a href="<?php echo admin_url('admin.php?page=vgc-vehicles'); ?>" class="button button-primary">
-                        Gestionează Vehicule
+                    <a href="<?php echo admin_url('admin.php?page=vgc-supabase'); ?>" class="button button-primary">
+                        Configurează Supabase
                     </a>
                 </p>
                 <p>
-                    <a href="<?php echo admin_url('admin.php?page=vgc-materials'); ?>" class="button button-secondary">
-                        Gestionează Materiale
+                    <a href="<?php echo admin_url('shortcode='); ?>" class="button button-secondary">
+                        Testează Calculator
                     </a>
                 </p>
             </div>

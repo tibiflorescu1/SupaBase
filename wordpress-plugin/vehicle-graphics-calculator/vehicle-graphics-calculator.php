@@ -19,6 +19,9 @@ define('VGC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('VGC_PLUGIN_PATH', plugin_dir_path(__FILE__));
 define('VGC_VERSION', '1.0.0');
 
+// Include Supabase client
+require_once VGC_PLUGIN_PATH . 'includes/supabase-client.php';
+
 // Main plugin class
 class VehicleGraphicsCalculator {
     
@@ -72,33 +75,64 @@ class VehicleGraphicsCalculator {
     public function ajax_get_vehicles() {
         check_ajax_referer('vgc_nonce', 'nonce');
         
-        global $wpdb;
+        $supabase = new VGC_Supabase_Client();
+        $data = $supabase->get_calculator_data();
         
-        $vehicles = $wpdb->get_results("
-            SELECT v.*, c.nume as category_name 
-            FROM {$wpdb->prefix}vgc_vehicles v 
-            LEFT JOIN {$wpdb->prefix}vgc_categories c ON v.category_id = c.id 
-            ORDER BY v.producer, v.model
-        ");
+        if (is_wp_error($data)) {
+            wp_send_json_error('Eroare la încărcarea datelor: ' . $data->get_error_message());
+            return;
+        }
         
-        foreach ($vehicles as &$vehicle) {
-            $vehicle->coverages = $wpdb->get_results($wpdb->prepare("
-                SELECT * FROM {$wpdb->prefix}vgc_coverages 
-                WHERE vehicle_id = %d ORDER BY name
-            ", $vehicle->id));
-            
-            $vehicle->extra_options = $wpdb->get_results($wpdb->prepare("
-                SELECT * FROM {$wpdb->prefix}vgc_extra_options 
-                WHERE vehicle_id = %d ORDER BY name
-            ", $vehicle->id));
+        // Transform data to match frontend expectations
+        $vehicles = array();
+        foreach ($data['vehicles'] as $vehicle) {
+            $vehicles[] = (object) array(
+                'id' => $vehicle['id'],
+                'producer' => $vehicle['producator'],
+                'model' => $vehicle['model'],
+                'category_name' => $vehicle['category_name'],
+                'manufacturing_period' => $vehicle['perioada_fabricatie'],
+                'coverages' => array_map(function($coverage) {
+                    return (object) array(
+                        'id' => $coverage['id'],
+                        'name' => $coverage['nume'],
+                        'price' => $coverage['pret']
+                    );
+                }, $vehicle['coverages']),
+                'extra_options' => array_map(function($option) {
+                    return (object) array(
+                        'id' => $option['id'],
+                        'name' => $option['nume'],
+                        'price' => $option['pret']
+                    );
+                }, $vehicle['extra_options'])
+            );
         }
         
         $materials = array(
-            'print' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}vgc_print_materials ORDER BY name"),
-            'lamination' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}vgc_lamination_materials ORDER BY name")
+            'print' => array_map(function($material) {
+                return (object) array(
+                    'id' => $material['id'],
+                    'name' => $material['nume'],
+                    'calculation_type' => $material['tip_calcul'] === 'procentual' ? 'percentage' : 'fixed_amount',
+                    'value' => $material['valoare'],
+                    'allows_white_print' => $material['permite_print_alb'] ? 1 : 0
+                );
+            }, $data['print_materials']),
+            'lamination' => array_map(function($material) {
+                return (object) array(
+                    'id' => $material['id'],
+                    'name' => $material['nume'],
+                    'calculation_type' => $material['tip_calcul'] === 'procentual' ? 'percentage' : 'fixed_amount',
+                    'value' => $material['valoare']
+                );
+            }, $data['lamination_materials'])
         );
         
-        $white_print_settings = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}vgc_white_print_settings LIMIT 1");
+        $white_print_settings = (object) array(
+            'calculation_type' => $data['white_print_settings']['tip_calcul'] === 'procentual' ? 'percentage' : 'fixed_amount',
+            'value' => $data['white_print_settings']['valoare']
+        );
         
         wp_send_json_success(array(
             'vehicles' => $vehicles,
@@ -226,11 +260,21 @@ class VehicleGraphicsCalculator {
             'vgc-materials',
             array($this, 'materials_page')
         );
+        
+        add_submenu_page(
+            'vgc-admin',
+            'Setări Supabase',
+            'Setări Supabase',
+            'manage_options',
+            'vgc-supabase',
+            array($this, 'supabase_page')
+        );
     }
     
     public function admin_init() {
         // Register settings
-        register_setting('vgc_settings', 'vgc_options');
+        register_setting('vgc_supabase_settings', 'vgc_supabase_url');
+        register_setting('vgc_supabase_settings', 'vgc_supabase_key');
     }
     
     public function admin_page() {
@@ -245,134 +289,15 @@ class VehicleGraphicsCalculator {
         include VGC_PLUGIN_PATH . 'admin/materials-page.php';
     }
     
-    public function create_tables() {
-        global $wpdb;
-        
-        $charset_collate = $wpdb->get_charset_collate();
-        
-        // Categories table
-        $sql = "CREATE TABLE {$wpdb->prefix}vgc_categories (
-            id int(11) NOT NULL AUTO_INCREMENT,
-            nume varchar(255) NOT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id)
-        ) $charset_collate;";
-        
-        // Vehicles table
-        $sql .= "CREATE TABLE {$wpdb->prefix}vgc_vehicles (
-            id int(11) NOT NULL AUTO_INCREMENT,
-            producer varchar(255) NOT NULL,
-            model varchar(255) NOT NULL,
-            category_id int(11),
-            manufacturing_period varchar(100),
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY category_id (category_id)
-        ) $charset_collate;";
-        
-        // Coverages table
-        $sql .= "CREATE TABLE {$wpdb->prefix}vgc_coverages (
-            id int(11) NOT NULL AUTO_INCREMENT,
-            vehicle_id int(11) NOT NULL,
-            name varchar(255) NOT NULL,
-            price decimal(10,2) NOT NULL,
-            file_link varchar(500),
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY vehicle_id (vehicle_id)
-        ) $charset_collate;";
-        
-        // Extra options table
-        $sql .= "CREATE TABLE {$wpdb->prefix}vgc_extra_options (
-            id int(11) NOT NULL AUTO_INCREMENT,
-            vehicle_id int(11) NOT NULL,
-            name varchar(255) NOT NULL,
-            price decimal(10,2) NOT NULL,
-            file_link varchar(500),
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            KEY vehicle_id (vehicle_id)
-        ) $charset_collate;";
-        
-        // Print materials table
-        $sql .= "CREATE TABLE {$wpdb->prefix}vgc_print_materials (
-            id int(11) NOT NULL AUTO_INCREMENT,
-            name varchar(255) NOT NULL,
-            calculation_type enum('percentage','fixed_amount') NOT NULL,
-            value decimal(10,2) NOT NULL,
-            allows_white_print tinyint(1) DEFAULT 0,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id)
-        ) $charset_collate;";
-        
-        // Lamination materials table
-        $sql .= "CREATE TABLE {$wpdb->prefix}vgc_lamination_materials (
-            id int(11) NOT NULL AUTO_INCREMENT,
-            name varchar(255) NOT NULL,
-            calculation_type enum('percentage','fixed_amount') NOT NULL,
-            value decimal(10,2) NOT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id)
-        ) $charset_collate;";
-        
-        // White print settings table
-        $sql .= "CREATE TABLE {$wpdb->prefix}vgc_white_print_settings (
-            id int(11) NOT NULL AUTO_INCREMENT,
-            calculation_type enum('percentage','fixed_amount') NOT NULL,
-            value decimal(10,2) NOT NULL,
-            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (id)
-        ) $charset_collate;";
-        
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-        
-        // Insert default data
-        $this->insert_default_data();
+    public function supabase_page() {
+        include VGC_PLUGIN_PATH . 'admin/supabase-page.php';
     }
     
-    private function insert_default_data() {
-        global $wpdb;
-        
-        // Insert default white print settings
-        $wpdb->insert(
-            $wpdb->prefix . 'vgc_white_print_settings',
-            array(
-                'calculation_type' => 'percentage',
-                'value' => 35.00
-            )
-        );
-        
-        // Insert sample categories
-        $categories = array('Sedan', 'SUV', 'Hatchback', 'Coupe');
-        foreach ($categories as $category) {
-            $wpdb->insert(
-                $wpdb->prefix . 'vgc_categories',
-                array('nume' => $category)
-            );
-        }
-        
-        // Insert sample print materials
-        $print_materials = array(
-            array('name' => 'Folie Standard', 'calculation_type' => 'percentage', 'value' => 15.00, 'allows_white_print' => 1),
-            array('name' => 'Folie Premium', 'calculation_type' => 'percentage', 'value' => 25.00, 'allows_white_print' => 1),
-            array('name' => 'Vinil Economic', 'calculation_type' => 'fixed_amount', 'value' => 200.00, 'allows_white_print' => 0)
-        );
-        
-        foreach ($print_materials as $material) {
-            $wpdb->insert($wpdb->prefix . 'vgc_print_materials', $material);
-        }
-        
-        // Insert sample lamination materials
-        $lamination_materials = array(
-            array('name' => 'Laminare Mat', 'calculation_type' => 'percentage', 'value' => 10.00),
-            array('name' => 'Laminare Lucios', 'calculation_type' => 'percentage', 'value' => 12.00),
-            array('name' => 'Laminare Premium', 'calculation_type' => 'fixed_amount', 'value' => 150.00)
-        );
-        
-        foreach ($lamination_materials as $material) {
-            $wpdb->insert($wpdb->prefix . 'vgc_lamination_materials', $material);
-        }
+    public function create_tables() {
+        // Nu mai creăm tabele locale - folosim Supabase
+        // Doar setăm opțiuni default
+        add_option('vgc_supabase_url', '');
+        add_option('vgc_supabase_key', '');
     }
     
     public function deactivate() {
