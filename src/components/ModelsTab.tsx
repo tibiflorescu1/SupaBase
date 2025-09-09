@@ -1,9 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X, Save, Image } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X, Save } from 'lucide-react';
 import { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra, Fisier } from '../hooks/useSupabaseData';
-import PhotoGallery from './PhotoGallery';
-import VehiclePhotoManager from './VehiclePhotoManager';
-import { supabase } from '../lib/supabase';
 
 interface ModelsTabProps {
   data: AppData;
@@ -24,8 +21,6 @@ export default function ModelsTab({
   onDeleteAcoperire, 
   onSaveOptiuneExtra, 
   onDeleteOptiuneExtra, 
-  onSaveVehiclePhoto,
-  onDeleteVehiclePhoto,
   onRefetch 
 }: ModelsTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,23 +28,36 @@ export default function ModelsTab({
   const [selectedProducer, setSelectedProducer] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
-  const [showPhotoManager, setShowPhotoManager] = useState<string | null>(null);
-  const [showPhotoGallery, setShowPhotoGallery] = useState<string | null>(null);
-  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
-  const [photoFeatureAvailable, setPhotoFeatureAvailable] = useState(true);
+  const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
+  const [editingDetails, setEditingDetails] = useState<Vehicul | null>(null);
+  const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
+  const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const [newVehicle, setNewVehicle] = useState({
+    producator: '',
+    model: '',
+    categorieId: '',
+    perioadaFabricatie: ''
+  });
+  const [fixingCategories, setFixingCategories] = useState(false);
 
-  const filteredVehicles = useMemo(() => {
-    return data.vehicule.filter(vehicle => {
-      const searchMatch = searchTerm === '' || 
-        (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
-      const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
-      
-      return searchMatch && categoryMatch && producerMatch;
-    });
-  }, [data.vehicule, searchTerm, selectedCategory, selectedProducer]);
+  const filteredVehicles = data.vehicule.filter(vehicle => {
+    const searchMatch = searchTerm === '' || 
+      (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (vehicle.model && vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
+    const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
+    
+    return searchMatch && categoryMatch && producerMatch;
+  }).filter(vehicle =>
+    vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
+  ).filter(vehicle =>
+    selectedCategory === '' || vehicle.categorieId === selectedCategory
+  ).filter(vehicle =>
+    selectedProducer === '' || vehicle.producator === selectedProducer
+  );
 
   // Get unique producers for filter dropdown
   const uniqueProducers = [...new Set(data.vehicule.map(v => v.producator))].sort();
@@ -112,30 +120,176 @@ export default function ModelsTab({
     }
   };
 
-  const handlePhotoGalleryOpen = (vehicleId: string, startIndex: number = 0) => {
-    setShowPhotoGallery(vehicleId);
-    setGalleryStartIndex(startIndex);
-  };
-
-  const handlePhotoGalleryClose = () => {
-    setShowPhotoGallery(null);
-  };
-
-  // Check if photo feature is available
-  useEffect(() => {
-    const checkPhotoFeature = async () => {
-      try {
-        const { error } = await supabase.from('vehicle_photos').select('id').limit(1);
-        setPhotoFeatureAvailable(!error);
-      } catch {
-        setPhotoFeatureAvailable(false);
+  const handleAddAcoperire = async (vehicleId: string) => {
+    try {
+      const result = await onSaveAcoperire({
+        ...newAcoperire,
+        vehicul_id: vehicleId
+      });
+      
+      // Update local editing state immediately
+      if (editingDetails && editingDetails.id === vehicleId) {
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            acoperiri: [...prev.acoperiri, {
+              id: result.id, // Use the returned ID from the save function
+              nume: newAcoperire.nume,
+              pret: newAcoperire.pret
+            }]
+          };
+        });
       }
-    };
-    checkPhotoFeature();
-  }, []);
+      
+      setNewAcoperire({ nume: '', pret: 0 });
+    } catch (error) {
+      console.error('Error adding acoperire:', error);
+    }
+  };
+
+  const handleAddOptiune = async (vehicleId: string) => {
+    try {
+      const result = await onSaveOptiuneExtra({
+        ...newOptiune,
+        vehicul_id: vehicleId
+      });
+      
+      // Update local editing state immediately
+      if (editingDetails && editingDetails.id === vehicleId) {
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            optiuniExtra: [...prev.optiuniExtra, {
+              id: result.id, // Use the returned ID from the save function
+              nume: newOptiune.nume,
+              pret: newOptiune.pret
+            }]
+          };
+        });
+      }
+      
+      setNewOptiune({ nume: '', pret: 0 });
+    } catch (error) {
+      console.error('Error adding optiune:', error);
+    }
+  };
+
+  const handleUpdateAcoperire = async (acoperire: Acoperire, file?: File) => {
+    try {
+      if (file) {
+        // Upload file and update local state
+        const result = await onSaveAcoperire({ ...acoperire, file } as any);
+        
+        // Update local editing state with file info
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            acoperiri: prev.acoperiri.map(ac => 
+              ac.id === acoperire.id 
+                ? { 
+                    ...ac, 
+                    fisier: { nume: file.name, dataUrl: URL.createObjectURL(file) }
+                  }
+                : ac
+            )
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error updating acoperire:', error);
+    }
+  };
+
+  const handleUpdateOptiune = async (optiune: OptiuneExtra, file?: File) => {
+    try {
+      if (file) {
+        // Upload file and update local state
+        const result = await onSaveOptiuneExtra({ ...optiune, file } as any);
+        
+        // Update local editing state with file info
+        setEditingDetails(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            optiuniExtra: prev.optiuniExtra.map(opt => 
+              opt.id === optiune.id 
+                ? { 
+                    ...opt, 
+                    fisier: { nume: file.name, dataUrl: URL.createObjectURL(file) }
+                  }
+                : opt
+            )
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error updating optiune:', error);
+    }
+  };
+
+  const handleDeleteAcoperire = async (acoperireId: string) => {
+    if (!confirm('Ești sigur că vrei să ștergi această acoperire?')) return;
+    
+    try {
+      await onDeleteAcoperire(acoperireId);
+      onRefetch();
+    } catch (error) {
+      console.error('Error deleting acoperire:', error);
+    }
+  };
+
+  const handleDeleteOptiune = async (optiuneId: string) => {
+    if (!confirm('Ești sigur că vrei să ștergi această opțiune?')) return;
+    
+    try {
+      await onDeleteOptiuneExtra(optiuneId);
+      onRefetch();
+    } catch (error) {
+      console.error('Error deleting optiune:', error);
+    }
+  };
+  // Save all changes function
+  const handleSaveAllChanges = async () => {
+    if (!editingDetails) return;
+    
+    try {
+      // Save all acoperiri changes
+      for (const acoperire of editingDetails.acoperiri) {
+        await onSaveAcoperire({
+          id: acoperire.id,
+          nume: acoperire.nume,
+          pret: acoperire.pret,
+          vehicul_id: editingDetails.id,
+          linkFisier: acoperire.linkFisier
+        });
+      }
+      
+      // Save all optiuni changes
+      for (const optiune of editingDetails.optiuniExtra) {
+        await onSaveOptiuneExtra({
+          id: optiune.id,
+          nume: optiune.nume,
+          pret: optiune.pret,
+          vehicul_id: editingDetails.id,
+          linkFisier: optiune.linkFisier
+        });
+      }
+      
+      // Refresh data and close modal
+      await onRefetch();
+      setEditingDetails(null);
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      alert('Eroare la salvarea modificărilor');
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Modele Vehicule</h2>
         <div className="text-sm text-gray-600">
@@ -189,162 +343,801 @@ export default function ModelsTab({
         </select>
       </div>
 
-      {/* Vehicles Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredVehicles.map((vehicle) => {
-          const acoperiri = vehicle.acoperiri || [];
-          const optiuni = vehicle.optiuniExtra || [];
-          
-          return (
-            <div key={vehicle.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {vehicle.producator} {vehicle.model}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {getCategoryName(vehicle.categorieId)}
-                    </p>
-                    {vehicle.perioadaFabricatie && (
-                      <p className="text-xs text-gray-500">
-                        {vehicle.perioadaFabricatie}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => setEditingVehicle(vehicle)}
-                      className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-                      title="Editează"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteVehicle(vehicle.id)}
-                      className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                      title="Șterge"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Acoperiri:</span>
-                    <span className="font-medium">{acoperiri.length}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Opțiuni extra:</span>
-                    <span className="font-medium">{optiuni.length}</span>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-200">
-                    <div className="flex gap-2">
+      {/* Vehicles Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Producător
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Model
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Categorie
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Perioada
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acoperiri
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Opțiuni
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acțiuni
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredVehicles.map((vehicle) => {
+              const acoperiri = vehicle.acoperiri || [];
+              const optiuni = vehicle.optiuniExtra || [];
+              
+              return (
+                <tr key={vehicle.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {vehicle.producator}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {vehicle.model}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {getCategoryName(vehicle.categorieId)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {vehicle.perioadaFabricatie || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {acoperiri.length} acoperiri
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      {optiuni.length} opțiuni
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-2">
+                      {/* View Details Button */}
                       <button
                         onClick={() => setViewingVehicle(vehicle)}
-                        className="flex items-center px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Vezi detalii"
                       >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Vezi detalii
+                        <Eye className="w-4 h-4" />
                       </button>
-                      <div className="flex-1">
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => setShowPhotoManager(vehicle.id)}
-                            className="flex items-center px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
-                            disabled={!photoFeatureAvailable}
-                            title={!photoFeatureAvailable ? 'Funcția de poze nu este disponibilă încă' : 'Gestionează pozele vehiculului'}
-                          >
-                            <Image className="w-4 h-4 mr-1" />
-                            {photoFeatureAvailable ? 'Gestionează poze' : 'Poze (indisponibil)'}
-                          </button>
-                        </div>
-                      </div>
+                      
+                      {/* Edit Details Button */}
+                      <button
+                        onClick={() => setEditingDetails(vehicle)}
+                        className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Editează acoperiri și opțiuni"
+                      >
+                        <Settings2 className="w-4 h-4" />
+                      </button>
+                      
+                      {/* Edit Vehicle Button */}
+                      <button
+                        onClick={() => setEditingVehicle(vehicle)}
+                        className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"
+                        title="Editează model"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => handleDeleteVehicle(vehicle.id)}
+                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Șterge model"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Vehicle Photos */}
-                  {photoFeatureAvailable && vehicle.photos && vehicle.photos.length > 0 && (
-                    <div className="mt-4">
-                      <h5 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                        <Image className="w-4 h-4" />
-                        Poze ({vehicle.photos.length})
-                      </h5>
-                      <div className="grid grid-cols-3 gap-2">
-                        {vehicle.photos.slice(0, 6).map((photo, index) => (
-                          <div
-                            key={photo.id}
-                            className="aspect-square bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => handlePhotoGalleryOpen(vehicle.id, index)}
-                          >
-                            <img
-                              src={photo.photoUrl}
-                              alt={photo.photoTitle || `Poza ${index + 1}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://via.placeholder.com/150x150/e5e7eb/6b7280?text=Eroare';
-                              }}
-                            />
-                          </div>
-                        ))}
-                        {vehicle.photos.length > 6 && (
-                          <div
-                            className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-                            onClick={() => handlePhotoGalleryOpen(vehicle.id, 6)}
-                          >
-                            <span className="text-sm text-gray-600">
-                              +{vehicle.photos.length - 6}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
-      {/* Photo Manager Modal */}
-      {showPhotoManager && photoFeatureAvailable && (
+      {/* Add Vehicle Modal */}
+      {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                Gestionează Poze: {data.vehicule.find(v => v.id === showPhotoManager)?.producator} {data.vehicule.find(v => v.id === showPhotoManager)?.model}
-              </h3>
+              <h3 className="text-lg font-semibold">Adaugă Model Nou</h3>
               <button
-                onClick={() => setShowPhotoManager(null)}
+                onClick={() => setShowAddForm(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <VehiclePhotoManager
-              vehicleId={showPhotoManager}
-              vehicleName={`${data.vehicule.find(v => v.id === showPhotoManager)?.producator} ${data.vehicule.find(v => v.id === showPhotoManager)?.model}`}
-              photos={data.vehicule.find(v => v.id === showPhotoManager)?.photos || []}
-              onSavePhoto={onSaveVehiclePhoto}
-              onDeletePhoto={onDeleteVehiclePhoto}
-            />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Producător
+                </label>
+                <input
+                  type="text"
+                  value={newVehicle.producator}
+                  onChange={(e) => setNewVehicle({ ...newVehicle, producator: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Model
+                </label>
+                <input
+                  type="text"
+                  value={newVehicle.model}
+                  onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categorie
+                </label>
+                <select
+                  value={newVehicle.categorieId}
+                  onChange={(e) => setNewVehicle({ ...newVehicle, categorieId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selectează categoria</option>
+                  {data.categorii.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.nume}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Perioada fabricație
+                </label>
+                <input
+                  type="text"
+                  value={newVehicle.perioadaFabricatie}
+                  onChange={(e) => setNewVehicle({ ...newVehicle, perioadaFabricatie: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="ex: 2020-2024"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAddVehicle}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+              >
+                Adaugă
+              </button>
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
+              >
+                Anulează
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Photo Gallery */}
-      {showPhotoGallery && photoFeatureAvailable && (
-        <PhotoGallery
-          photos={data.vehicule.find(v => v.id === showPhotoGallery)?.photos || []}
-          isOpen={!!showPhotoGallery}
-          onClose={handlePhotoGalleryClose}
-          initialIndex={galleryStartIndex}
-        />
+      {/* Edit Vehicle Modal */}
+      {editingVehicle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Editează Model</h3>
+              <button
+                onClick={() => setEditingVehicle(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Producător
+                </label>
+                <input
+                  type="text"
+                  value={editingVehicle.producator}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, producator: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Model
+                </label>
+                <input
+                  type="text"
+                  value={editingVehicle.model}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, model: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categorie
+                </label>
+                <select
+                  value={editingVehicle.categorieId}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, categorieId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selectează categoria</option>
+                  {data.categorii.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.nume}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Perioada fabricație
+                </label>
+                <input
+                  type="text"
+                  value={editingVehicle.perioadaFabricatie}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, perioadaFabricatie: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="ex: 2020-2024"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleUpdateVehicle}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+              >
+                Salvează
+              </button>
+              <button
+                onClick={() => setEditingVehicle(null)}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
+              >
+                Anulează
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Details Modal */}
+      {viewingVehicle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {viewingVehicle.producator} {viewingVehicle.model}
+              </h3>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                  Vizualizare (doar citire)
+                </span>
+                <button
+                  onClick={() => setViewingVehicle(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Vehicle Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Informații vehicul</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="md:col-span-2">
+                    <span className="text-gray-500">ID Vehicul:</span>
+                    <span className="ml-2 font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">
+                      {viewingVehicle.producator.replace(/\s+/g, '')}_
+                      {viewingVehicle.model.replace(/\s+/g, '')}_
+                      {viewingVehicle.id.substring(0, 8)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Categorie:</span>
+                    <span className="ml-2 font-medium">{getCategoryName(viewingVehicle.categorieId)}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Perioada:</span>
+                    <span className="ml-2 font-medium">{viewingVehicle.perioadaFabricatie || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Acoperiri */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Acoperiri disponibile</h4>
+                <div className="space-y-2">
+                  {(viewingVehicle.acoperiri || []).map((acoperire) => (
+                    <div key={acoperire.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <span className="font-medium text-gray-900">{acoperire.nume}</span>
+                        <span className="ml-3 text-green-600 font-semibold">{acoperire.pret} RON</span>
+                      </div>
+                      {acoperire.fisier && (
+                        <button
+                          onClick={() => downloadFile(acoperire.fisier!)}
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          <Download className="w-4 h-4" />
+                          {acoperire.fisier.nume}
+                        </button>
+                      )}
+                      {acoperire.linkFisier && (
+                        <a
+                          href={acoperire.linkFisier}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                          title="Deschide în Google Drive"
+                        >
+                          <Download className="w-4 h-4" />
+                          Fișier Google Drive
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                  {(!viewingVehicle.acoperiri || viewingVehicle.acoperiri.length === 0) && (
+                    <p className="text-gray-500 text-center py-4">Nu există acoperiri definite</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Opțiuni Extra */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Opțiuni extra disponibile</h4>
+                <div className="space-y-2">
+                  {(viewingVehicle.optiuniExtra || []).map((optiune) => (
+                    <div key={optiune.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <span className="font-medium text-gray-900">{optiune.nume}</span>
+                        <span className="ml-3 text-green-600 font-semibold">{optiune.pret} RON</span>
+                      </div>
+                      {optiune.fisier && (
+                        <button
+                          onClick={() => downloadFile(optiune.fisier!)}
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          <Download className="w-4 h-4" />
+                          {optiune.fisier.nume}
+                        </button>
+                      )}
+                      {optiune.linkFisier && (
+                        <a
+                          href={optiune.linkFisier}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                          title="Deschide în Google Drive"
+                        >
+                          <Download className="w-4 h-4" />
+                          Fișier Google Drive
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                  {(!viewingVehicle.optiuniExtra || viewingVehicle.optiuniExtra.length === 0) && (
+                    <p className="text-gray-500 text-center py-4">Nu există opțiuni extra definite</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Details Modal */}
+      {editingDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Editează: {editingDetails.producator} {editingDetails.model}
+              </h3>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                  Mod editare
+                </span>
+                <button
+                  onClick={() => {
+                    handleSaveAllChanges();
+                  }}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvează toate modificările
+                </button>
+                <button
+                  onClick={() => setEditingDetails(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Vehicle Info with ID */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Informații vehicul</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="md:col-span-2">
+                    <span className="text-gray-500">ID Vehicul:</span>
+                    <span className="ml-2 font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">
+                      {editingDetails.producator.replace(/\s+/g, '')}_
+                      {editingDetails.model.replace(/\s+/g, '')}_
+                      {editingDetails.id.substring(0, 8)}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-500">(folosit în import/export)</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Categorie:</span>
+                    <span className="ml-2 font-medium">{getCategoryName(editingDetails.categorieId)}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Perioada:</span>
+                    <span className="ml-2 font-medium">{editingDetails.perioadaFabricatie || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Acoperiri */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-medium text-gray-900">Acoperiri disponibile</h4>
+                  <button
+                    onClick={() => handleAddAcoperire(editingDetails.id)}
+                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Adaugă acoperire
+                  </button>
+                </div>
+                
+                {/* Add new acoperire form */}
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Nume acoperire</label>
+                      <input
+                        type="text"
+                        value={newAcoperire.nume}
+                        onChange={(e) => setNewAcoperire({ ...newAcoperire, nume: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                        placeholder="ex: Folie transparentă"
+                      />
+                    </div>
+                    <div className="w-24">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Preț (RON)</label>
+                      <input
+                        type="number"
+                        value={newAcoperire.pret}
+                        onChange={(e) => setNewAcoperire({ ...newAcoperire, pret: Number(e.target.value) })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleAddAcoperire(editingDetails.id)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                    >
+                      Adaugă
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {(editingDetails.acoperiri || []).map((acoperire) => (
+                    <div key={acoperire.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1 space-y-1">
+                        <input
+                          type="text"
+                          value={acoperire.nume}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                acoperiri: prev.acoperiri.map(ac => 
+                                  ac.id === acoperire.id ? { ...ac, nume: e.target.value } : ac
+                                )
+                              };
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-medium"
+                        />
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          value={acoperire.pret}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                acoperiri: prev.acoperiri.map(ac => 
+                                  ac.id === acoperire.id ? { ...ac, pret: Number(e.target.value) } : ac
+                                )
+                              };
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-green-600 font-semibold"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {acoperire.fisier ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => downloadFile(acoperire.fisier!)}
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <span className="text-xs text-gray-500">{acoperire.fisier.nume}</span>
+                          </div>
+                        ) : acoperire.linkFisier ? (
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={acoperire.linkFisier}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                              title="Deschide în Google Drive (necesită permisiuni)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                            <span className="text-xs text-gray-500">Drive Link</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">Fără fișier</span>
+                        )}
+                        
+                        {/* Google Drive Link Input */}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="url"
+                            placeholder="Link Google Drive..."
+                            className="text-xs px-2 py-1 border border-gray-300 rounded w-48"
+                            value={acoperire.linkFisier || ''}
+                            onChange={(e) => {
+                              // Update local state only
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  acoperiri: prev.acoperiri.map(ac => 
+                                    ac.id === acoperire.id ? { ...ac, linkFisier: e.target.value } : ac
+                                  )
+                                };
+                              });
+                            }}
+                          />
+                        </div>
+                        
+                        <input
+                          type="file"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleUpdateAcoperire(acoperire, file);
+                          }}
+                          className="hidden"
+                          id={`file-acoperire-${acoperire.id}`}
+                        />
+                        <label
+                          htmlFor={`file-acoperire-${acoperire.id}`}
+                          className="cursor-pointer text-green-600 hover:text-green-800"
+                        >
+                          <Upload className="w-4 h-4" />
+                        </label>
+                        <button
+                          onClick={() => handleDeleteAcoperire(acoperire.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(!editingDetails.acoperiri || editingDetails.acoperiri.length === 0) && (
+                    <p className="text-gray-500 text-center py-4">Nu există acoperiri definite</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Opțiuni Extra */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-medium text-gray-900">Opțiuni extra disponibile</h4>
+                  <button
+                    onClick={() => handleAddOptiune(editingDetails.id)}
+                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Adaugă opțiune
+                  </button>
+                </div>
+                
+                {/* Add new optiune form */}
+                <div className="mb-4 p-3 bg-green-50 rounded-lg">
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Nume opțiune</label>
+                      <input
+                        type="text"
+                        value={newOptiune.nume}
+                        onChange={(e) => setNewOptiune({ ...newOptiune, nume: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                        placeholder="ex: Protecție faruri"
+                      />
+                    </div>
+                    <div className="w-24">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Preț (RON)</label>
+                      <input
+                        type="number"
+                        value={newOptiune.pret}
+                        onChange={(e) => setNewOptiune({ ...newOptiune, pret: Number(e.target.value) })}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleAddOptiune(editingDetails.id)}
+                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                    >
+                      Adaugă
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {(editingDetails.optiuniExtra || []).map((optiune) => (
+                    <div key={optiune.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1 space-y-1">
+                        <input
+                          type="text"
+                          value={optiune.nume}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                optiuniExtra: prev.optiuniExtra.map(opt => 
+                                  opt.id === optiune.id ? { ...opt, nume: e.target.value } : opt
+                                )
+                              };
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-medium"
+                        />
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          value={optiune.pret}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                optiuniExtra: prev.optiuniExtra.map(opt => 
+                                  opt.id === optiune.id ? { ...opt, pret: Number(e.target.value) } : opt
+                                )
+                              };
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-green-600 font-semibold"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {optiune.fisier ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => downloadFile(optiune.fisier!)}
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <span className="text-xs text-gray-500">{optiune.fisier.nume}</span>
+                          </div>
+                        ) : optiune.linkFisier ? (
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={optiune.linkFisier}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                              title="Deschide în Google Drive (necesită permisiuni)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                            <span className="text-xs text-gray-500">Drive Link</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">Fără fișier</span>
+                        )}
+                        
+                        {/* Google Drive Link Input */}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="url"
+                            placeholder="Link Google Drive..."
+                            className="text-xs px-2 py-1 border border-gray-300 rounded w-48"
+                            value={optiune.linkFisier || ''}
+                            onChange={(e) => {
+                              // Update local state only
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  optiuniExtra: prev.optiuniExtra.map(opt => 
+                                    opt.id === optiune.id ? { ...opt, linkFisier: e.target.value } : opt
+                                  )
+                                };
+                              });
+                            }}
+                          />
+                        </div>
+                        
+                        <input
+                          type="file"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleUpdateOptiune(optiune, file);
+                          }}
+                          className="hidden"
+                          id={`file-optiune-${optiune.id}`}
+                        />
+                        <label
+                          htmlFor={`file-optiune-${optiune.id}`}
+                          className="cursor-pointer text-green-600 hover:text-green-800"
+                        >
+                          <Upload className="w-4 h-4" />
+                        </label>
+                        <button
+                          onClick={() => handleDeleteOptiune(optiune.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(!editingDetails.optiuniExtra || editingDetails.optiuniExtra.length === 0) && (
+                    <p className="text-gray-500 text-center py-4">Nu există opțiuni extra definite</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

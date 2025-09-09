@@ -8,21 +8,13 @@ import type {
   DatabaseMaterialPrint,
   DatabaseMaterialLaminare,
   DatabaseSetariPrintAlb,
-  DatabaseFisier,
-  DatabaseVehiclePhoto
+  DatabaseFisier
 } from '../lib/supabase';
 
 // Transform database types to app types
 export interface Fisier {
   nume: string;
   dataUrl: string;
-}
-
-export interface VehiclePhoto {
-  id: string;
-  photoUrl: string;
-  photoTitle: string;
-  orderIndex: number;
 }
 
 export interface Categorie {
@@ -54,7 +46,6 @@ export interface Vehicul {
   perioadaFabricatie: string;
   acoperiri: Acoperire[];
   optiuniExtra: OptiuneExtra[];
-  photos: VehiclePhoto[];
 }
 
 export interface MaterialPrint {
@@ -105,8 +96,7 @@ export function useSupabaseData() {
     materialePrint: DatabaseMaterialPrint[],
     materialeLaminare: DatabaseMaterialLaminare[],
     setariPrintAlb: DatabaseSetariPrintAlb[],
-    fisiere: DatabaseFisier[],
-    vehiclePhotos: DatabaseVehiclePhoto[]
+    fisiere: DatabaseFisier[]
   ): Promise<AppData> => {
     // Create file lookup
     const fileMap = new Map<string, Fisier>();
@@ -116,26 +106,6 @@ export function useSupabaseData() {
 
     console.log('Files loaded:', fisiere.length);
     console.log('File map:', fileMap);
-    
-    // Create vehicle photos lookup
-    const vehiclePhotosMap = new Map<string, VehiclePhoto[]>();
-    vehiclePhotos.forEach(photo => {
-      if (!vehiclePhotosMap.has(photo.vehicul_id)) {
-        vehiclePhotosMap.set(photo.vehicul_id, []);
-      }
-      vehiclePhotosMap.get(photo.vehicul_id)!.push({
-        id: photo.id,
-        photoUrl: photo.photo_url,
-        photoTitle: photo.photo_title,
-        orderIndex: photo.order_index
-      });
-    });
-    
-    // Sort photos by order index
-    vehiclePhotosMap.forEach(photos => {
-      photos.sort((a, b) => a.orderIndex - b.orderIndex);
-    });
-
     // Transform categories
     const transformedCategorii: Categorie[] = categorii.map(c => ({
       id: c.id,
@@ -167,9 +137,6 @@ export function useSupabaseData() {
         }));
 
       console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) optiuni:`, vehiculOptiuni);
-      
-      const vehiculPhotos = vehiclePhotosMap.get(v.id) || [];
-      
       return {
         id: v.id,
         producator: v.producator,
@@ -177,8 +144,7 @@ export function useSupabaseData() {
         categorieId: v.categorie_id,
         perioadaFabricatie: v.perioada_fabricatie,
         acoperiri: vehiculAcoperiri,
-        optiuniExtra: vehiculOptiuni,
-        photos: vehiculPhotos
+        optiuniExtra: vehiculOptiuni
       };
     });
 
@@ -245,23 +211,6 @@ export function useSupabaseData() {
         supabase.from('fisiere').select('*')
       ]);
 
-      // Try to load vehicle photos, but don't fail if table doesn't exist
-      let vehiclePhotos: DatabaseVehiclePhoto[] = [];
-      try {
-        const { data: photosData, error: photosError } = await supabase
-          .from('vehicle_photos')
-          .select('*')
-          .order('order_index');
-        
-        if (photosError) {
-          console.warn('Vehicle photos table not available:', photosError.message);
-        } else {
-          vehiclePhotos = photosData || [];
-        }
-      } catch (error) {
-        console.warn('Vehicle photos feature not available yet:', error);
-      }
-
       // Check for errors
       const errors = [
         categoriiError, vehiculeError, acopeririError, optiuniError,
@@ -282,7 +231,6 @@ export function useSupabaseData() {
       console.log('- Materiale laminare:', materialeLaminare?.length || 0);
       console.log('- Setari print alb:', setariPrintAlb?.length || 0);
       console.log('- Fisiere:', fisiere?.length || 0);
-      console.log('- Vehicle photos:', vehiclePhotos?.length || 0);
 
       // Transform and set data
       const transformedData = await transformData(
@@ -293,8 +241,7 @@ export function useSupabaseData() {
         materialePrint || [],
         materialeLaminare || [],
         setariPrintAlb || [],
-        fisiere || [],
-        vehiclePhotos || []
+        fisiere || []
       );
 
       console.log('✅ Transformed data:');
@@ -396,51 +343,6 @@ export function useSupabaseData() {
       await loadData(); // Reload data
     } catch (err) {
       console.error('Error saving vehicle:', err);
-      throw err;
-    }
-  };
-
-  const saveVehiclePhoto = async (photo: Omit<VehiclePhoto, 'id'> & { id?: string, vehicul_id: string }) => {
-    try {
-      const dbPhoto = {
-        vehicul_id: photo.vehicul_id,
-        photo_url: photo.photoUrl,
-        photo_title: photo.photoTitle || '',
-        order_index: photo.orderIndex || 0,
-        updated_at: new Date().toISOString()
-      };
-
-      if (photo.id) {
-        // Update existing
-        const { error } = await supabase
-          .from('vehicle_photos')
-          .update(dbPhoto)
-          .eq('id', photo.id);
-        if (error) throw error;
-      } else {
-        // Insert new
-        const { error } = await supabase
-          .from('vehicle_photos')
-          .insert(dbPhoto);
-        if (error) throw error;
-      }
-      await loadData(); // Reload data
-    } catch (err) {
-      console.error('Error saving vehicle photo:', err);
-      throw err;
-    }
-  };
-
-  const deleteVehiclePhoto = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('vehicle_photos')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      await loadData(); // Reload data
-    } catch (err) {
-      console.error('Error deleting vehicle photo:', err);
       throw err;
     }
   };
@@ -855,8 +757,6 @@ export function useSupabaseData() {
     deleteMaterialPrint,
     saveMaterialLaminare,
     deleteMaterialLaminare,
-    saveSetariPrintAlb,
-    saveVehiclePhoto,
-    deleteVehiclePhoto
+    saveSetariPrintAlb
   };
 }
