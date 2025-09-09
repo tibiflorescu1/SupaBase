@@ -359,6 +359,9 @@ export function useSupabaseData() {
         // Add link_fisier if it exists and the column is available
         if (acoperire.linkFisier) {
             (dbAcoperire as any).link_fisier = acoperire.linkFisier;
+        } else if (acoperire.linkFisier === '') {
+            // Explicitly set to null when empty string is provided
+            (dbAcoperire as any).link_fisier = null;
         }
         if (acoperire.id) {
             try {
@@ -447,7 +450,7 @@ export function useSupabaseData() {
     } catch (err) {
         console.error('Error saving coverage:', err);
         throw err;
-    }
+                            updated_at: new Date().toISOString()
   };
 
   const deleteAcoperire = async (id: string) => {
@@ -497,6 +500,9 @@ export function useSupabaseData() {
         // Add link_fisier if it exists and the column is available
         if (optiune.linkFisier) {
             (dbOptiune as any).link_fisier = optiune.linkFisier;
+        } else if (optiune.linkFisier === '') {
+            // Explicitly set to null when empty string is provided
+            (dbOptiune as any).link_fisier = null;
         }
         if (optiune.id) {
             try {
