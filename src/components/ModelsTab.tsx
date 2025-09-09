@@ -292,6 +292,9 @@ export default function ModelsTab({
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Modele Vehicule</h2>
+        <div className="text-sm text-gray-600">
+          Total vehicule: {data.vehicule.length} | Afișate: {filteredVehicles.length}
+        </div>
         <div className="flex gap-3">
           <button
             onClick={() => setShowAddForm(true)}

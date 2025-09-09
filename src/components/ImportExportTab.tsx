@@ -33,6 +33,7 @@ export default function ImportExportTab({
   // Export function - creates a single comprehensive CSV
   const exportCompleteData = () => {
     const csvData: any[] = [];
+    let totalRows = 0;
     
     data.vehicule.forEach(vehicul => {
       const categoria = data.categorii.find(c => c.id === vehicul.categorieId);
@@ -52,6 +53,7 @@ export default function ImportExportTab({
         'Fișier Atașat': '',
         'Observații': 'Vehicul de bază'
       });
+      totalRows++;
       
       // Add coverage rows
       vehicul.acoperiri.forEach(acoperire => {
@@ -68,6 +70,7 @@ export default function ImportExportTab({
           'Fișier Atașat': acoperire.fisier ? `DA - ${acoperire.fisier.nume}` : 'NU',
           'Observații': 'Acoperire pentru ' + vehicul.producator + ' ' + vehicul.model
         });
+        totalRows++;
       });
       
       // Add extra options rows
@@ -85,9 +88,11 @@ export default function ImportExportTab({
           'Fișier Atașat': optiune.fisier ? `DA - ${optiune.fisier.nume}` : 'NU',
           'Observații': 'Opțiune extra pentru ' + vehicul.producator + ' ' + vehicul.model
         });
+        totalRows++;
       });
     });
 
+    console.log(`Export: ${data.vehicule.length} vehicule, ${totalRows} rânduri totale în CSV`);
     const csv = Papa.unparse(csvData);
     downloadCSV(csv, 'date_complete_vehicule.csv');
   };
