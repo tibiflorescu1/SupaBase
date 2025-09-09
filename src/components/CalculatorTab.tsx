@@ -265,6 +265,25 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
                      <h3 className="text-2xl font-bold border-b border-gray-600 pb-3 mb-4">Rezumat Ofertă</h3>
                      {vehicul && acoperire ? (
                          <div className="space-y-2">
+                             <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+                                 <div className="text-sm text-gray-300 mb-1">Vehicul selectat:</div>
+                                 <div className="font-medium text-blue-400 text-sm">{vehicul.producator} {vehicul.model}</div>
+                                 <div className="text-sm text-gray-300 mt-2 mb-1">Acoperire selectată:</div>
+                                 <div className="font-medium text-green-400 text-sm">{acoperire.nume}</div>
+                                 {selectedOptiuni.length > 0 && (
+                                     <>
+                                         <div className="text-sm text-gray-300 mt-2 mb-1">Opțiuni selectate:</div>
+                                         {vehicul.optiuniExtra
+                                             .filter(opt => selectedOptiuni.includes(opt.id))
+                                             .map(opt => (
+                                                 <div key={opt.id} className="font-medium text-yellow-400 text-xs">
+                                                     {opt.nume}
+                                                 </div>
+                                             ))
+                                         }
+                                     </>
+                                 )}
+                             </div>
                              {calcul.breakdown.map((item, index) => (
                                 <div key={index} className="flex justify-between text-gray-300">
                                     <span>{item.label}</span>

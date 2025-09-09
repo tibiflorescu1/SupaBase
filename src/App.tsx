@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet } from 'lucide-react';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
@@ -7,7 +7,7 @@ import MaterialsTab from './components/MaterialsTab';
 import CalculatorTab from './components/CalculatorTab';
 import ImportExportTab from './components/ImportExportTab';
 
-type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export';
+type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'users';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
@@ -86,11 +86,13 @@ export default function App() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <span>Vehicule: {data.vehicule.length}</span>
-              <span>Afișate: {activeTab === 'models' ? 'vezi în tab' : data.vehicule.length}</span>
-              <span>Categorii: {data.categorii.length}</span>
-              <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <span>Vehicule: {data.vehicule.length}</span>
+                <span>Afișate: {activeTab === 'models' ? 'vezi în tab' : data.vehicule.length}</span>
+                <span>Categorii: {data.categorii.length}</span>
+                <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -100,23 +102,9 @@ export default function App() {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.name}</span>
-                </button>
-              );
-            })}
+            {tabs.map(tab => (
+              <TabButton key={tab.id} tab={tab} activeTab={activeTab} setActiveTab={setActiveTab} />
+            ))}
           </div>
         </div>
       </nav>
@@ -170,5 +158,31 @@ export default function App() {
         )}
       </main>
     </div>
+  );
+}
+
+// Helper component for tab buttons
+function TabButton({ 
+  tab, 
+  activeTab, 
+  setActiveTab 
+}: { 
+  tab: { id: Tab; name: string; icon: React.ComponentType<any> }; 
+  activeTab: Tab; 
+  setActiveTab: (tab: Tab) => void; 
+}) {
+  const Icon = tab.icon;
+  return (
+    <button
+      onClick={() => setActiveTab(tab.id)}
+      className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+        activeTab === tab.id
+          ? 'border-blue-500 text-blue-600'
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+      }`}
+    >
+      <Icon className="w-5 h-5" />
+      <span>{tab.name}</span>
+    </button>
   );
 }

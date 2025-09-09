@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X } from 'lucide-react';
+import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X, Save } from 'lucide-react';
 import { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra, Fisier } from '../hooks/useSupabaseData';
 
 interface ModelsTabProps {
@@ -197,19 +197,6 @@ export default function ModelsTab({
             )
           };
         });
-      } else {
-        // For text changes, update local state immediately
-        setEditingDetails(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            acoperiri: prev.acoperiri.map(ac => 
-              ac.id === acoperire.id ? acoperire : ac
-            )
-          };
-        });
-        // Also save to database
-        await onSaveAcoperire(acoperire);
       }
     } catch (error) {
       console.error('Error updating acoperire:', error);
@@ -237,19 +224,6 @@ export default function ModelsTab({
             )
           };
         });
-      } else {
-        // For text changes, update local state immediately
-        setEditingDetails(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            optiuniExtra: prev.optiuniExtra.map(opt => 
-              opt.id === optiune.id ? optiune : opt
-            )
-          };
-        });
-        // Also save to database
-        await onSaveOptiuneExtra(optiune);
       }
     } catch (error) {
       console.error('Error updating optiune:', error);
@@ -275,6 +249,41 @@ export default function ModelsTab({
       onRefetch();
     } catch (error) {
       console.error('Error deleting optiune:', error);
+    }
+  };
+  // Save all changes function
+  const handleSaveAllChanges = async () => {
+    if (!editingDetails) return;
+    
+    try {
+      // Save all acoperiri changes
+      for (const acoperire of editingDetails.acoperiri) {
+        await onSaveAcoperire({
+          id: acoperire.id,
+          nume: acoperire.nume,
+          pret: acoperire.pret,
+          vehicul_id: editingDetails.id,
+          linkFisier: acoperire.linkFisier
+        });
+      }
+      
+      // Save all optiuni changes
+      for (const optiune of editingDetails.optiuniExtra) {
+        await onSaveOptiuneExtra({
+          id: optiune.id,
+          nume: optiune.nume,
+          pret: optiune.pret,
+          vehicul_id: editingDetails.id,
+          linkFisier: optiune.linkFisier
+        });
+      }
+      
+      // Refresh data and close modal
+      await onRefetch();
+      setEditingDetails(null);
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      alert('Eroare la salvarea modificărilor');
     }
   };
 
@@ -637,7 +646,15 @@ export default function ModelsTab({
               {/* Vehicle Info */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-2">Informații vehicul</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="md:col-span-2">
+                    <span className="text-gray-500">ID Vehicul:</span>
+                    <span className="ml-2 font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">
+                      {viewingVehicle.producator.replace(/\s+/g, '')}_
+                      {viewingVehicle.model.replace(/\s+/g, '')}_
+                      {viewingVehicle.id.substring(0, 8)}
+                    </span>
+                  </div>
                   <div>
                     <span className="text-gray-500">Categorie:</span>
                     <span className="ml-2 font-medium">{getCategoryName(viewingVehicle.categorieId)}</span>
@@ -668,6 +685,18 @@ export default function ModelsTab({
                           {acoperire.fisier.nume}
                         </button>
                       )}
+                      {acoperire.linkFisier && (
+                        <a
+                          href={acoperire.linkFisier}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                          title="Deschide în Google Drive"
+                        >
+                          <Download className="w-4 h-4" />
+                          Fișier Google Drive
+                        </a>
+                      )}
                     </div>
                   ))}
                   {(!viewingVehicle.acoperiri || viewingVehicle.acoperiri.length === 0) && (
@@ -695,6 +724,18 @@ export default function ModelsTab({
                           {optiune.fisier.nume}
                         </button>
                       )}
+                      {optiune.linkFisier && (
+                        <a
+                          href={optiune.linkFisier}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                          title="Deschide în Google Drive"
+                        >
+                          <Download className="w-4 h-4" />
+                          Fișier Google Drive
+                        </a>
+                      )}
                     </div>
                   ))}
                   {(!viewingVehicle.optiuniExtra || viewingVehicle.optiuniExtra.length === 0) && (
@@ -720,6 +761,15 @@ export default function ModelsTab({
                   Mod editare
                 </span>
                 <button
+                  onClick={() => {
+                    handleSaveAllChanges();
+                  }}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvează toate modificările
+                </button>
+                <button
                   onClick={() => setEditingDetails(null)}
                   className="text-gray-400 hover:text-gray-600"
                 >
@@ -729,6 +779,30 @@ export default function ModelsTab({
             </div>
             
             <div className="p-6 space-y-6">
+              {/* Vehicle Info with ID */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Informații vehicul</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="md:col-span-2">
+                    <span className="text-gray-500">ID Vehicul:</span>
+                    <span className="ml-2 font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">
+                      {editingDetails.producator.replace(/\s+/g, '')}_
+                      {editingDetails.model.replace(/\s+/g, '')}_
+                      {editingDetails.id.substring(0, 8)}
+                    </span>
+                    <span className="ml-2 text-xs text-gray-500">(folosit în import/export)</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Categorie:</span>
+                    <span className="ml-2 font-medium">{getCategoryName(editingDetails.categorieId)}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Perioada:</span>
+                    <span className="ml-2 font-medium">{editingDetails.perioadaFabricatie || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Acoperiri */}
               <div>
                 <div className="flex justify-between items-center mb-3">
@@ -776,11 +850,22 @@ export default function ModelsTab({
                 <div className="space-y-2">
                   {(editingDetails.acoperiri || []).map((acoperire) => (
                     <div key={acoperire.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-1">
                         <input
                           type="text"
                           value={acoperire.nume}
-                          onChange={(e) => handleUpdateAcoperire({ ...acoperire, nume: e.target.value })}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                acoperiri: prev.acoperiri.map(ac => 
+                                  ac.id === acoperire.id ? { ...ac, nume: e.target.value } : ac
+                                )
+                              };
+                            });
+                          }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-medium"
                         />
                       </div>
@@ -788,7 +873,18 @@ export default function ModelsTab({
                         <input
                           type="number"
                           value={acoperire.pret}
-                          onChange={(e) => handleUpdateAcoperire({ ...acoperire, pret: Number(e.target.value) })}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                acoperiri: prev.acoperiri.map(ac => 
+                                  ac.id === acoperire.id ? { ...ac, pret: Number(e.target.value) } : ac
+                                )
+                              };
+                            });
+                          }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-green-600 font-semibold"
                         />
                       </div>
@@ -803,9 +899,45 @@ export default function ModelsTab({
                             </button>
                             <span className="text-xs text-gray-500">{acoperire.fisier.nume}</span>
                           </div>
+                        ) : acoperire.linkFisier ? (
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={acoperire.linkFisier}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                              title="Deschide în Google Drive (necesită permisiuni)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                            <span className="text-xs text-gray-500">Drive Link</span>
+                          </div>
                         ) : (
                           <span className="text-xs text-gray-400">Fără fișier</span>
                         )}
+                        
+                        {/* Google Drive Link Input */}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="url"
+                            placeholder="Link Google Drive..."
+                            className="text-xs px-2 py-1 border border-gray-300 rounded w-48"
+                            value={acoperire.linkFisier || ''}
+                            onChange={(e) => {
+                              // Update local state only
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  acoperiri: prev.acoperiri.map(ac => 
+                                    ac.id === acoperire.id ? { ...ac, linkFisier: e.target.value } : ac
+                                  )
+                                };
+                              });
+                            }}
+                          />
+                        </div>
+                        
                         <input
                           type="file"
                           onChange={(e) => {
@@ -859,7 +991,7 @@ export default function ModelsTab({
                         value={newOptiune.nume}
                         onChange={(e) => setNewOptiune({ ...newOptiune, nume: e.target.value })}
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                        placeholder="ex: Decupare personalizată"
+                        placeholder="ex: Protecție faruri"
                       />
                     </div>
                     <div className="w-24">
@@ -883,11 +1015,22 @@ export default function ModelsTab({
                 <div className="space-y-2">
                   {(editingDetails.optiuniExtra || []).map((optiune) => (
                     <div key={optiune.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-1">
                         <input
                           type="text"
                           value={optiune.nume}
-                          onChange={(e) => handleUpdateOptiune({ ...optiune, nume: e.target.value })}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                optiuniExtra: prev.optiuniExtra.map(opt => 
+                                  opt.id === optiune.id ? { ...opt, nume: e.target.value } : opt
+                                )
+                              };
+                            });
+                          }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-medium"
                         />
                       </div>
@@ -895,7 +1038,18 @@ export default function ModelsTab({
                         <input
                           type="number"
                           value={optiune.pret}
-                          onChange={(e) => handleUpdateOptiune({ ...optiune, pret: Number(e.target.value) })}
+                          onChange={(e) => {
+                            // Update local state only
+                            setEditingDetails(prev => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                optiuniExtra: prev.optiuniExtra.map(opt => 
+                                  opt.id === optiune.id ? { ...opt, pret: Number(e.target.value) } : opt
+                                )
+                              };
+                            });
+                          }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded text-green-600 font-semibold"
                         />
                       </div>
@@ -910,9 +1064,45 @@ export default function ModelsTab({
                             </button>
                             <span className="text-xs text-gray-500">{optiune.fisier.nume}</span>
                           </div>
+                        ) : optiune.linkFisier ? (
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={optiune.linkFisier}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                              title="Deschide în Google Drive (necesită permisiuni)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                            <span className="text-xs text-gray-500">Drive Link</span>
+                          </div>
                         ) : (
                           <span className="text-xs text-gray-400">Fără fișier</span>
                         )}
+                        
+                        {/* Google Drive Link Input */}
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="url"
+                            placeholder="Link Google Drive..."
+                            className="text-xs px-2 py-1 border border-gray-300 rounded w-48"
+                            value={optiune.linkFisier || ''}
+                            onChange={(e) => {
+                              // Update local state only
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  optiuniExtra: prev.optiuniExtra.map(opt => 
+                                    opt.id === optiune.id ? { ...opt, linkFisier: e.target.value } : opt
+                                  )
+                                };
+                              });
+                            }}
+                          />
+                        </div>
+                        
                         <input
                           type="file"
                           onChange={(e) => {
@@ -942,26 +1132,6 @@ export default function ModelsTab({
                   )}
                 </div>
               </div>
-            </div>
-            
-            {/* Save/Cancel buttons for editing details */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-              <button
-                onClick={() => setEditingDetails(null)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Anulează
-              </button>
-              <button
-                onClick={() => {
-                  // Save changes and close modal
-                  setEditingDetails(null);
-                  onRefetch();
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Salvează toate modificările
-              </button>
             </div>
           </div>
         </div>

@@ -27,6 +27,7 @@ export interface OptiuneExtra {
   nume: string;
   pret: number;
   fisier?: Fisier;
+  linkFisier?: string;
 }
 
 export interface Acoperire {
@@ -34,6 +35,7 @@ export interface Acoperire {
   nume: string;
   pret: number;
   fisier?: Fisier;
+  linkFisier?: string;
 }
 
 export interface Vehicul {
@@ -102,6 +104,8 @@ export function useSupabaseData() {
       fileMap.set(f.id, { nume: f.nume, dataUrl: f.data_url });
     });
 
+    console.log('Files loaded:', fisiere.length);
+    console.log('File map:', fileMap);
     // Transform categories
     const transformedCategorii: Categorie[] = categorii.map(c => ({
       id: c.id,
@@ -110,24 +114,29 @@ export function useSupabaseData() {
 
     // Transform vehicles with their coverage and extra options
     const transformedVehicule: Vehicul[] = vehicule.map(v => {
+      
       const vehiculAcoperiri = acoperiri
         .filter(a => a.vehicul_id === v.id)
         .map(a => ({
           id: a.id,
           nume: a.nume,
           pret: Number(a.pret),
-          fisier: a.fisier_id ? fileMap.get(a.fisier_id) : undefined
+          fisier: a.fisier_id ? fileMap.get(a.fisier_id) : undefined,
+          linkFisier: a.link_fisier || undefined
         }));
 
+      console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) acoperiri:`, vehiculAcoperiri);
       const vehiculOptiuni = optiuni
         .filter(o => o.vehicul_id === v.id)
         .map(o => ({
           id: o.id,
           nume: o.nume,
           pret: Number(o.pret),
-          fisier: o.fisier_id ? fileMap.get(o.fisier_id) : undefined
+          fisier: o.fisier_id ? fileMap.get(o.fisier_id) : undefined,
+          linkFisier: o.link_fisier || undefined
         }));
 
+      console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) optiuni:`, vehiculOptiuni);
       return {
         id: v.id,
         producator: v.producator,
@@ -337,6 +346,7 @@ export function useSupabaseData() {
             if (fileError) throw fileError;
             fisier_id = fileData.id;
         }
+        
 
         const dbAcoperire = {
             nume: acoperire.nume,
@@ -346,11 +356,33 @@ export function useSupabaseData() {
             updated_at: new Date().toISOString()
         };
 
+        // Add link_fisier if it exists and the column is available
+        if (acoperire.linkFisier) {
+            (dbAcoperire as any).link_fisier = acoperire.linkFisier;
+        }
         if (acoperire.id) {
-            const { error } = await supabase.from('acoperiri').update(dbAcoperire).eq('id', acoperire.id);
-            if (error) throw error;
+            try {
+                const { error } = await supabase.from('acoperiri').update(dbAcoperire).eq('id', acoperire.id);
+                if (error) throw error;
+            } catch (error: any) {
+                // If link_fisier column doesn't exist, retry without it
+                if (error.message?.includes('link_fisier')) {
+                    const dbAcoperireWithoutLink = {
+                        nume: acoperire.nume,
+                        pret: acoperire.pret,
+                        vehicul_id: acoperire.vehicul_id,
+                        fisier_id: fisier_id,
+                        updated_at: new Date().toISOString()
+                    };
+                    const { error: retryError } = await supabase.from('acoperiri').update(dbAcoperireWithoutLink).eq('id', acoperire.id);
+                    if (retryError) throw retryError;
+                    console.warn('Saved without link_fisier - database column missing');
+                } else {
+                    throw error;
+                }
+            }
             
-            // Update main data state only if file was uploaded
+            // Update main data state for file uploads
             if (fisier_id) {
               setData(prevData => ({
                 ...prevData,
@@ -362,7 +394,7 @@ export function useSupabaseData() {
                           ...ac, 
                           nume: acoperire.nume, 
                           pret: acoperire.pret,
-                          fisier: { nume: (acoperire as any).file.name, dataUrl }
+                          fisier: fisier_id ? { nume: (acoperire as any).file.name, dataUrl } : undefined
                         }
                       : ac
                   )
@@ -370,15 +402,47 @@ export function useSupabaseData() {
               }));
             }
             
-            return { id: acoperire.id, fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined };
-        } else {
-            const { data: newAcoperire, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
-            if (error) throw error;
-            
             return { 
-              id: newAcoperire.id, 
-              fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined 
+              id: acoperire.id,
+              fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
             };
+        } else {
+            try {
+                const { data: newAcoperire, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
+                if (error) throw error;
+                
+                // Reload data to get the updated vehicle with new coverage
+                await loadData();
+                
+                return { 
+                  id: newAcoperire.id,
+                  fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
+                };
+            } catch (error: any) {
+                // If link_fisier column doesn't exist, retry without it
+                if (error.message?.includes('link_fisier')) {
+                    const dbAcoperireWithoutLink = {
+                        nume: acoperire.nume,
+                        pret: acoperire.pret,
+                        vehicul_id: acoperire.vehicul_id,
+                        fisier_id: fisier_id,
+                        updated_at: new Date().toISOString()
+                    };
+                    const { data: newAcoperire, error: retryError } = await supabase.from('acoperiri').insert(dbAcoperireWithoutLink).select().single();
+                    if (retryError) throw retryError;
+                    console.warn('Saved without link_fisier - database column missing');
+                    
+                    // Reload data to get the updated vehicle with new coverage
+                    await loadData();
+                    
+                    return { 
+                      id: newAcoperire.id,
+                      fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
+                    };
+                } else {
+                    throw error;
+                }
+            }
         }
     } catch (err) {
         console.error('Error saving coverage:', err);
@@ -420,6 +484,7 @@ export function useSupabaseData() {
             if (fileError) throw fileError;
             fisier_id = fileData.id;
         }
+        
 
         const dbOptiune = {
             nume: optiune.nume,
@@ -429,11 +494,33 @@ export function useSupabaseData() {
             updated_at: new Date().toISOString()
         };
 
+        // Add link_fisier if it exists and the column is available
+        if (optiune.linkFisier) {
+            (dbOptiune as any).link_fisier = optiune.linkFisier;
+        }
         if (optiune.id) {
-            const { error } = await supabase.from('optiuni_extra').update(dbOptiune).eq('id', optiune.id);
-            if (error) throw error;
+            try {
+                const { error } = await supabase.from('optiuni_extra').update(dbOptiune).eq('id', optiune.id);
+                if (error) throw error;
+            } catch (error: any) {
+                // If link_fisier column doesn't exist, retry without it
+                if (error.message?.includes('link_fisier')) {
+                    const dbOptiuneWithoutLink = {
+                        nume: optiune.nume,
+                        pret: optiune.pret,
+                        vehicul_id: optiune.vehicul_id,
+                        fisier_id: fisier_id,
+                        updated_at: new Date().toISOString()
+                    };
+                    const { error: retryError } = await supabase.from('optiuni_extra').update(dbOptiuneWithoutLink).eq('id', optiune.id);
+                    if (retryError) throw retryError;
+                    console.warn('Saved without link_fisier - database column missing');
+                } else {
+                    throw error;
+                }
+            }
             
-            // Update main data state only if file was uploaded
+            // Update main data state for file uploads
             if (fisier_id) {
               setData(prevData => ({
                 ...prevData,
@@ -445,7 +532,7 @@ export function useSupabaseData() {
                           ...opt, 
                           nume: optiune.nume, 
                           pret: optiune.pret,
-                          fisier: { nume: (optiune as any).file.name, dataUrl }
+                          fisier: fisier_id ? { nume: (optiune as any).file.name, dataUrl } : undefined
                         }
                       : opt
                   )
@@ -453,15 +540,47 @@ export function useSupabaseData() {
               }));
             }
             
-            return { id: optiune.id, fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined };
-        } else {
-            const { data: newOptiune, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
-            if (error) throw error;
-            
             return { 
-              id: newOptiune.id, 
-              fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined 
+              id: optiune.id,
+              fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
             };
+        } else {
+            try {
+                const { data: newOptiune, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
+                if (error) throw error;
+                
+                // Reload data to get the updated vehicle with new option
+                await loadData();
+                
+                return { 
+                  id: newOptiune.id,
+                  fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
+                };
+            } catch (error: any) {
+                // If link_fisier column doesn't exist, retry without it
+                if (error.message?.includes('link_fisier')) {
+                    const dbOptiuneWithoutLink = {
+                        nume: optiune.nume,
+                        pret: optiune.pret,
+                        vehicul_id: optiune.vehicul_id,
+                        fisier_id: fisier_id,
+                        updated_at: new Date().toISOString()
+                    };
+                    const { data: newOptiune, error: retryError } = await supabase.from('optiuni_extra').insert(dbOptiuneWithoutLink).select().single();
+                    if (retryError) throw retryError;
+                    console.warn('Saved without link_fisier - database column missing');
+                    
+                    // Reload data to get the updated vehicle with new option
+                    await loadData();
+                    
+                    return { 
+                      id: newOptiune.id,
+                      fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
+                    };
+                } else {
+                    throw error;
+                }
+            }
         }
     } catch (err) {
         console.error('Error saving extra option:', err);
