@@ -330,6 +330,30 @@ export default function ImportExportTab({
 
             try {
               if (tip === 'ACOPERIRE') {
+                // Check if acoperire already exists
+                const existingAcoperire = vehicle.acoperiri.find(a => 
+                  a.nume.toLowerCase().trim() === numeItem.toLowerCase().trim()
+                );
+                
+                if (existingAcoperire) {
+                  result.warnings.push(`Acoperirea "${numeItem}" există deja pentru "${producator} ${model}" - se actualizează`);
+                  
+                  // Update existing acoperire
+                  const acoperireData: any = {
+                    id: existingAcoperire.id,
+                    nume: numeItem,
+                    pret: pret,
+                    vehicul_id: vehicle.id
+                  };
+                  
+                  if (linkFisier && linkFisier.startsWith('http')) {
+                    acoperireData.linkFisier = linkFisier;
+                  }
+                  
+                  await onSaveAcoperire(acoperireData);
+                  result.success++;
+                } else {
+                  // Create new acoperire
                 const acoperireData: any = {
                   nume: numeItem,
                   pret: pret,
@@ -344,7 +368,32 @@ export default function ImportExportTab({
                 
                 await onSaveAcoperire(acoperireData);
                 result.success++;
+                }
               } else if (tip === 'OPTIUNE_EXTRA') {
+                // Check if optiune already exists
+                const existingOptiune = vehicle.optiuniExtra.find(o => 
+                  o.nume.toLowerCase().trim() === numeItem.toLowerCase().trim()
+                );
+                
+                if (existingOptiune) {
+                  result.warnings.push(`Opțiunea "${numeItem}" există deja pentru "${producator} ${model}" - se actualizează`);
+                  
+                  // Update existing optiune
+                  const optiuneData: any = {
+                    id: existingOptiune.id,
+                    nume: numeItem,
+                    pret: pret,
+                    vehicul_id: vehicle.id
+                  };
+                  
+                  if (linkFisier && linkFisier.startsWith('http')) {
+                    optiuneData.linkFisier = linkFisier;
+                  }
+                  
+                  await onSaveOptiuneExtra(optiuneData);
+                  result.success++;
+                } else {
+                  // Create new optiune
                 const optiuneData: any = {
                   nume: numeItem,
                   pret: pret,
@@ -359,6 +408,7 @@ export default function ImportExportTab({
                 
                 await onSaveOptiuneExtra(optiuneData);
                 result.success++;
+                }
               }
             } catch (error) {
               console.error('Error saving item:', error);
