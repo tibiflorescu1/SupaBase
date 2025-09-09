@@ -13,8 +13,6 @@ interface ModelsTabProps {
   onDeleteAcoperire: (id: string) => Promise<void>;
   onSaveOptiuneExtra: (optiune: Partial<OptiuneExtra>, file?: File) => Promise<void>;
   onDeleteOptiuneExtra: (id: string) => Promise<void>;
-  onSaveVehiclePhoto: (photo: any) => Promise<void>;
-  onDeleteVehiclePhoto: (id: string) => Promise<void>;
   onRefetch: () => void;
 }
 
