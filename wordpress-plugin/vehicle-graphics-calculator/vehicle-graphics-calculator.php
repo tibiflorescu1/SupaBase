@@ -75,42 +75,47 @@ class VehicleGraphicsCalculator {
     public function ajax_get_vehicles() {
         check_ajax_referer('vgc_nonce', 'nonce');
         
+        error_log('VGC: AJAX get_vehicles called');
+        
         $supabase = new VGC_Supabase_Client();
         $data = $supabase->get_calculator_data();
         
         if (is_wp_error($data)) {
+            error_log('VGC: Error getting data: ' . $data->get_error_message());
             wp_send_json_error('Eroare la încărcarea datelor: ' . $data->get_error_message());
             return;
         }
+        
+        error_log('VGC: Data loaded successfully. Vehicles: ' . count($data['vehicles']));
         
         // Transform data to match frontend expectations
         $vehicles = array();
         foreach ($data['vehicles'] as $vehicle) {
             $vehicles[] = (object) array(
                 'id' => $vehicle['id'],
-                'producer' => $vehicle['producator'],
+                'producer' => isset($vehicle['producator']) ? $vehicle['producator'] : '',
                 'model' => $vehicle['model'],
-                'category_name' => $vehicle['category_name'],
-                'manufacturing_period' => $vehicle['perioada_fabricatie'],
-                'coverages' => array_map(function($coverage) {
+                'category_name' => isset($vehicle['category_name']) ? $vehicle['category_name'] : 'Necunoscută',
+                'manufacturing_period' => isset($vehicle['perioada_fabricatie']) ? $vehicle['perioada_fabricatie'] : '',
+                'coverages' => isset($vehicle['coverages']) ? array_map(function($coverage) {
                     return (object) array(
                         'id' => $coverage['id'],
                         'name' => $coverage['nume'],
                         'price' => $coverage['pret']
                     );
-                }, $vehicle['coverages']),
-                'extra_options' => array_map(function($option) {
+                }, $vehicle['coverages']) : array(),
+                'extra_options' => isset($vehicle['extra_options']) ? array_map(function($option) {
                     return (object) array(
                         'id' => $option['id'],
                         'name' => $option['nume'],
                         'price' => $option['pret']
                     );
-                }, $vehicle['extra_options'])
+                }, $vehicle['extra_options']) : array()
             );
         }
         
         $materials = array(
-            'print' => array_map(function($material) {
+            'print' => isset($data['print_materials']) ? array_map(function($material) {
                 return (object) array(
                     'id' => $material['id'],
                     'name' => $material['nume'],
@@ -118,21 +123,26 @@ class VehicleGraphicsCalculator {
                     'value' => $material['valoare'],
                     'allows_white_print' => $material['permite_print_alb'] ? 1 : 0
                 );
-            }, $data['print_materials']),
-            'lamination' => array_map(function($material) {
+            }, $data['print_materials']) : array(),
+            'lamination' => isset($data['lamination_materials']) ? array_map(function($material) {
                 return (object) array(
                     'id' => $material['id'],
                     'name' => $material['nume'],
                     'calculation_type' => $material['tip_calcul'] === 'procentual' ? 'percentage' : 'fixed_amount',
                     'value' => $material['valoare']
                 );
-            }, $data['lamination_materials'])
+            }, $data['lamination_materials']) : array()
         );
         
-        $white_print_settings = (object) array(
+        $white_print_settings = isset($data['white_print_settings']) ? (object) array(
             'calculation_type' => $data['white_print_settings']['tip_calcul'] === 'procentual' ? 'percentage' : 'fixed_amount',
             'value' => $data['white_print_settings']['valoare']
+        ) : (object) array(
+            'calculation_type' => 'percentage',
+            'value' => 35
         );
+        
+        error_log('VGC: Sending response with ' . count($vehicles) . ' vehicles');
         
         wp_send_json_success(array(
             'vehicles' => $vehicles,

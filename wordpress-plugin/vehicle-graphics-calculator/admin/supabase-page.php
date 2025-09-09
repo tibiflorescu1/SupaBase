@@ -19,6 +19,18 @@ if (isset($_POST['submit']) && wp_verify_nonce($_POST['vgc_nonce'], 'vgc_supabas
     }
 }
 
+// Test connection button
+if (isset($_POST['test_connection']) && wp_verify_nonce($_POST['vgc_nonce'], 'vgc_supabase_settings')) {
+    $supabase = new VGC_Supabase_Client();
+    $data = $supabase->get_calculator_data();
+    
+    if (is_wp_error($data)) {
+        echo '<div class="notice notice-error"><p>❌ Eroare: ' . esc_html($data->get_error_message()) . '</p></div>';
+    } else {
+        echo '<div class="notice notice-success"><p>✅ Conexiune reușită! Date găsite: ' . count($data['vehicles']) . ' vehicule</p></div>';
+    }
+}
+
 $supabase_url = get_option('vgc_supabase_url', '');
 $supabase_key = get_option('vgc_supabase_key', '');
 ?>
@@ -58,6 +70,7 @@ $supabase_key = get_option('vgc_supabase_key', '');
             
             <p class="submit">
                 <input type="submit" name="submit" class="button button-primary" value="Salvează Setări">
+                <input type="submit" name="test_connection" class="button button-secondary" value="Testează Conexiunea" style="margin-left: 10px;">
             </p>
         </form>
     </div>

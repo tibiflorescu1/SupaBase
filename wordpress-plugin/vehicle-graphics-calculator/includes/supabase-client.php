@@ -14,10 +14,12 @@ class VGC_Supabase_Client {
     
     private function make_request($endpoint, $method = 'GET', $data = null) {
         if (empty($this->supabase_url) || empty($this->supabase_key)) {
-            return new WP_Error('missing_config', 'Supabase URL sau API Key lipsesc');
+            error_log('VGC: Supabase URL sau API Key lipsesc');
+            return new WP_Error('missing_config', 'Supabase URL sau API Key lipsesc. Configurează în VG Calculator → Setări Supabase');
         }
         
         $url = rtrim($this->supabase_url, '/') . '/rest/v1/' . ltrim($endpoint, '/');
+        error_log('VGC: Making request to: ' . $url);
         
         $headers = array(
             'apikey' => $this->supabase_key,
@@ -39,17 +41,28 @@ class VGC_Supabase_Client {
         $response = wp_remote_request($url, $args);
         
         if (is_wp_error($response)) {
+            error_log('VGC: WP Error: ' . $response->get_error_message());
             return $response;
         }
         
         $status_code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
         
+        error_log('VGC: Response status: ' . $status_code);
+        error_log('VGC: Response body: ' . substr($body, 0, 200) . '...');
+        
         if ($status_code >= 400) {
+            error_log('VGC: Supabase Error: ' . $body);
             return new WP_Error('supabase_error', 'Supabase Error: ' . $body, array('status' => $status_code));
         }
         
-        return json_decode($body, true);
+        $decoded = json_decode($body, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('VGC: JSON decode error: ' . json_last_error_msg());
+            return new WP_Error('json_error', 'Eroare la decodarea răspunsului JSON');
+        }
+        
+        return $decoded;
     }
     
     // Get all categories
