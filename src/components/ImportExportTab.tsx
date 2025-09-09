@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Download, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Upload, Download, FileText, AlertCircle, CheckCircle, X, Trash2, RefreshCw } from 'lucide-react';
 import Papa from 'papaparse';
 import type { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra } from '../hooks/useSupabaseData';
 
@@ -29,6 +29,8 @@ export default function ImportExportTab({
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<ImportResult | null>(null);
 
   // Export function - creates a single comprehensive CSV
   const exportCompleteData = () => {
@@ -427,10 +429,108 @@ export default function ImportExportTab({
     });
   };
 
+  // Function to find and remove duplicates
+  const cleanupDuplicates = async () => {
+    if (!confirm('Ești sigur că vrei să ștergi duplicatele? Această acțiune nu poate fi anulată.')) {
+      return;
+    }
+
+    setCleaningDuplicates(true);
+    setCleanupResult(null);
+
+    const result: ImportResult = { success: 0, errors: [], warnings: [] };
+
+    try {
+      // Process each vehicle
+      for (const vehicle of data.vehicule) {
+        // Find duplicate acoperiri
+        const acopeririMap = new Map<string, Acoperire[]>();
+        
+        vehicle.acoperiri.forEach(acoperire => {
+          const key = acoperire.nume.toLowerCase().trim();
+          if (!acopeririMap.has(key)) {
+            acopeririMap.set(key, []);
+          }
+          acopeririMap.get(key)!.push(acoperire);
+        });
+
+        // Remove duplicates (keep first, delete rest)
+        for (const [name, duplicates] of acopeririMap) {
+          if (duplicates.length > 1) {
+            result.warnings.push(`Găsite ${duplicates.length} duplicate pentru acoperirea "${duplicates[0].nume}" la ${vehicle.producator} ${vehicle.model}`);
+            
+            // Keep the first one, delete the rest
+            for (let i = 1; i < duplicates.length; i++) {
+              try {
+                await onDeleteAcoperire(duplicates[i].id);
+                result.success++;
+              } catch (error) {
+                result.errors.push(`Eroare la ștergerea duplicatului "${duplicates[i].nume}": ${error}`);
+              }
+            }
+          }
+        }
+
+        // Find duplicate optiuni extra
+        const optiuniMap = new Map<string, OptiuneExtra[]>();
+        
+        vehicle.optiuniExtra.forEach(optiune => {
+          const key = optiune.nume.toLowerCase().trim();
+          if (!optiuniMap.has(key)) {
+            optiuniMap.set(key, []);
+          }
+          optiuniMap.get(key)!.push(optiune);
+        });
+
+        // Remove duplicates (keep first, delete rest)
+        for (const [name, duplicates] of optiuniMap) {
+          if (duplicates.length > 1) {
+            result.warnings.push(`Găsite ${duplicates.length} duplicate pentru opțiunea "${duplicates[0].nume}" la ${vehicle.producator} ${vehicle.model}`);
+            
+            // Keep the first one, delete the rest
+            for (let i = 1; i < duplicates.length; i++) {
+              try {
+                await onDeleteOptiuneExtra(duplicates[i].id);
+                result.success++;
+              } catch (error) {
+                result.errors.push(`Eroare la ștergerea duplicatului "${duplicates[i].nume}": ${error}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Refresh data after cleanup
+      onRefetch();
+      
+    } catch (error) {
+      result.errors.push(`Eroare generală la curățarea duplicatelor: ${error}`);
+    }
+
+    setCleanupResult(result);
+    setCleaningDuplicates(false);
+  };
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Import/Export Date</h2>
+        <button
+          onClick={cleanupDuplicates}
+          disabled={cleaningDuplicates}
+          className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {cleaningDuplicates ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Se curăță...
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Curăță Duplicate
+            </>
+          )}
+        </button>
       </div>
 
       {/* Export Section */}
@@ -630,5 +730,66 @@ export default function ImportExportTab({
         </div>
       )}
     </div>
+      {/* Cleanup Results */}
+      {cleanupResult && (
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">🧹 Rezultatul Curățării Duplicatelor</h3>
+            <button
+              onClick={() => setCleanupResult(null)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {cleanupResult.success > 0 && (
+              <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+                <span className="text-green-800">
+                  ✅ {cleanupResult.success} duplicate șterse cu succes
+                </span>
+              </div>
+            )}
+
+            {cleanupResult.warnings.length > 0 && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+                  <span className="font-medium text-yellow-800">🔍 Duplicate găsite și procesate:</span>
+                </div>
+                <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
+                  {cleanupResult.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {cleanupResult.errors.length > 0 && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+                  <span className="font-medium text-red-800">❌ Erori:</span>
+                </div>
+                <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                  {cleanupResult.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            {cleanupResult.success === 0 && cleanupResult.warnings.length === 0 && (
+              <div className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-blue-600 mr-3" />
+                <span className="text-blue-800">
+                  🎉 Nu s-au găsit duplicate! Datele sunt deja curate.
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+            )}
   );
 }
