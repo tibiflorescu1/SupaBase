@@ -552,6 +552,12 @@ export default function ImportExportTab({
               <li><strong>IMPORTANT:</strong> Doar link-uri valide (http/https)</li>
               <li>Link-urile se pot edita direct în Excel</li>
             </ul>
+            <p><strong>Poze Vehicule:</strong></p>
+            <ul className="list-disc list-inside ml-4 space-y-1">
+              <li>Pozele se gestionează separat prin butonul <strong>"Gestionează poze"</strong> din tab-ul Modele</li>
+              <li>Fiecare vehicul poate avea 2-3 poze cu link-uri separate</li>
+              <li>Pozele nu se exportă/importă prin CSV - se gestionează manual</li>
+            </ul>
           </div>
         </div>
         
