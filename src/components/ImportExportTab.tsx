@@ -354,20 +354,20 @@ export default function ImportExportTab({
                   result.success++;
                 } else {
                   // Create new acoperire
-                const acoperireData: any = {
-                  nume: numeItem,
-                  pret: pret,
-                  vehicul_id: vehicle.id
-                };
-                
-                // Add link if provided
-                if (linkFisier && linkFisier.startsWith('http')) {
-                  acoperireData.linkFisier = linkFisier;
-                  console.log('Adding Google Drive link to acoperire:', linkFisier);
-                }
-                
-                await onSaveAcoperire(acoperireData);
-                result.success++;
+                  const acoperireData: any = {
+                    nume: numeItem,
+                    pret: pret,
+                    vehicul_id: vehicle.id
+                  };
+                  
+                  // Add link if provided
+                  if (linkFisier && linkFisier.startsWith('http')) {
+                    acoperireData.linkFisier = linkFisier;
+                    console.log('Adding Google Drive link to acoperire:', linkFisier);
+                  }
+                  
+                  await onSaveAcoperire(acoperireData);
+                  result.success++;
                 }
               } else if (tip === 'OPTIUNE_EXTRA') {
                 // Check if optiune already exists
@@ -394,20 +394,20 @@ export default function ImportExportTab({
                   result.success++;
                 } else {
                   // Create new optiune
-                const optiuneData: any = {
-                  nume: numeItem,
-                  pret: pret,
-                  vehicul_id: vehicle.id
-                };
-                
-                // Add link if provided
-                if (linkFisier && linkFisier.startsWith('http')) {
-                  optiuneData.linkFisier = linkFisier;
-                  console.log('Adding Google Drive link to optiune:', linkFisier);
-                }
-                
-                await onSaveOptiuneExtra(optiuneData);
-                result.success++;
+                  const optiuneData: any = {
+                    nume: numeItem,
+                    pret: pret,
+                    vehicul_id: vehicle.id
+                  };
+                  
+                  // Add link if provided
+                  if (linkFisier && linkFisier.startsWith('http')) {
+                    optiuneData.linkFisier = linkFisier;
+                    console.log('Adding Google Drive link to optiune:', linkFisier);
+                  }
+                  
+                  await onSaveOptiuneExtra(optiuneData);
+                  result.success++;
                 }
               }
             } catch (error) {
@@ -426,7 +426,6 @@ export default function ImportExportTab({
       }
     });
   };
-
 
   return (
     <div className="space-y-6">
@@ -630,10 +629,6 @@ export default function ImportExportTab({
           </div>
         </div>
       )}
-
-
-
-
     </div>
   );
 }
