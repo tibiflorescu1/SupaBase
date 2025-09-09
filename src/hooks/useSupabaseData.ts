@@ -233,8 +233,7 @@ export function useSupabaseData() {
         { data: materialePrint, error: materialePrintError },
         { data: materialeLaminare, error: materialeLaminareError },
         { data: setariPrintAlb, error: setariPrintAlbError },
-        { data: fisiere, error: fisiereError },
-        { data: vehiclePhotos, error: vehiclePhotosError }
+        { data: fisiere, error: fisiereError }
       ] = await Promise.all([
         supabase.from('categorii').select('*'),
         supabase.from('vehicule').select('*'),
@@ -243,14 +242,30 @@ export function useSupabaseData() {
         supabase.from('materiale_print').select('*'),
         supabase.from('materiale_laminare').select('*'),
         supabase.from('setari_print_alb').select('*'),
-        supabase.from('fisiere').select('*'),
-        supabase.from('vehicle_photos').select('*').order('order_index')
+        supabase.from('fisiere').select('*')
       ]);
+
+      // Try to load vehicle photos, but don't fail if table doesn't exist
+      let vehiclePhotos: DatabaseVehiclePhoto[] = [];
+      try {
+        const { data: photosData, error: photosError } = await supabase
+          .from('vehicle_photos')
+          .select('*')
+          .order('order_index');
+        
+        if (photosError) {
+          console.warn('Vehicle photos table not available:', photosError.message);
+        } else {
+          vehiclePhotos = photosData || [];
+        }
+      } catch (error) {
+        console.warn('Vehicle photos feature not available yet:', error);
+      }
 
       // Check for errors
       const errors = [
         categoriiError, vehiculeError, acopeririError, optiuniError,
-        materialePrintError, materialeLaminareError, setariPrintAlbError, fisiereError, vehiclePhotosError
+        materialePrintError, materialeLaminareError, setariPrintAlbError, fisiereError
       ].filter(Boolean);
 
       if (errors.length > 0) {
