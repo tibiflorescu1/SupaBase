@@ -34,6 +34,9 @@ export default function ImportExportTab({
   const exportCompleteData = () => {
     const csvData: any[] = [];
     let totalRows = 0;
+    let vehicleRows = 0;
+    let acoperireRows = 0;
+    let optiuneRows = 0;
     
     data.vehicule.forEach(vehicul => {
       const categoria = data.categorii.find(c => c.id === vehicul.categorieId);
@@ -54,6 +57,7 @@ export default function ImportExportTab({
         'Observații': 'Vehicul de bază'
       });
       totalRows++;
+      vehicleRows++;
       
       // Add coverage rows
       vehicul.acoperiri.forEach(acoperire => {
@@ -71,6 +75,7 @@ export default function ImportExportTab({
           'Observații': 'Acoperire pentru ' + vehicul.producator + ' ' + vehicul.model
         });
         totalRows++;
+        acoperireRows++;
       });
       
       // Add extra options rows
@@ -89,10 +94,33 @@ export default function ImportExportTab({
           'Observații': 'Opțiune extra pentru ' + vehicul.producator + ' ' + vehicul.model
         });
         totalRows++;
+        optiuneRows++;
       });
     });
 
-    console.log(`Export: ${data.vehicule.length} vehicule, ${totalRows} rânduri totale în CSV`);
+    console.log('📤 Export breakdown:');
+    console.log(`- Vehicule în aplicație: ${data.vehicule.length}`);
+    console.log(`- Rânduri VEHICUL în CSV: ${vehicleRows}`);
+    console.log(`- Rânduri ACOPERIRE în CSV: ${acoperireRows}`);
+    console.log(`- Rânduri OPTIUNE_EXTRA în CSV: ${optiuneRows}`);
+    console.log(`- Total rânduri în CSV: ${totalRows}`);
+    
+    // Check for potential duplicates in export
+    const vehicleKeys = new Set();
+    const exportDuplicates = [];
+    data.vehicule.forEach(v => {
+      const key = `${v.producator}_${v.model}`;
+      if (vehicleKeys.has(key)) {
+        exportDuplicates.push(key);
+      } else {
+        vehicleKeys.add(key);
+      }
+    });
+    
+    if (exportDuplicates.length > 0) {
+      console.warn('⚠️ Duplicate vehicles in export:', exportDuplicates);
+    }
+    
     const csv = Papa.unparse(csvData);
     downloadCSV(csv, 'date_complete_vehicule.csv');
   };

@@ -187,6 +187,8 @@ export function useSupabaseData() {
     try {
       setLoading(true);
       setError(null);
+      
+      console.log('🔍 Loading data from Supabase...');
 
       // Fetch all data in parallel
       const [
@@ -219,6 +221,17 @@ export function useSupabaseData() {
         throw new Error(`Database errors: ${errors.map(e => e?.message).join(', ')}`);
       }
 
+      // Debug logging
+      console.log('📊 Raw data from database:');
+      console.log('- Categorii:', categorii?.length || 0);
+      console.log('- Vehicule:', vehicule?.length || 0);
+      console.log('- Acoperiri:', acoperiri?.length || 0);
+      console.log('- Optiuni:', optiuni?.length || 0);
+      console.log('- Materiale print:', materialePrint?.length || 0);
+      console.log('- Materiale laminare:', materialeLaminare?.length || 0);
+      console.log('- Setari print alb:', setariPrintAlb?.length || 0);
+      console.log('- Fisiere:', fisiere?.length || 0);
+
       // Transform and set data
       const transformedData = await transformData(
         categorii || [],
@@ -231,6 +244,31 @@ export function useSupabaseData() {
         fisiere || []
       );
 
+      console.log('✅ Transformed data:');
+      console.log('- Final vehicule count:', transformedData.vehicule.length);
+      console.log('- Categorii count:', transformedData.categorii.length);
+      
+      // Check for duplicates
+      const vehiculeMap = new Map();
+      const duplicates = [];
+      transformedData.vehicule.forEach(v => {
+        const key = `${v.producator}_${v.model}`;
+        if (vehiculeMap.has(key)) {
+          duplicates.push({
+            key,
+            existing: vehiculeMap.get(key),
+            duplicate: v
+          });
+        } else {
+          vehiculeMap.set(key, v);
+        }
+      });
+      
+      if (duplicates.length > 0) {
+        console.warn('⚠️ Found duplicate vehicles:', duplicates);
+      }
+      
+      console.log('🎯 Unique vehicles by name:', vehiculeMap.size);
       setData(transformedData);
     } catch (err) {
       console.error('Error loading data from Supabase:', err);

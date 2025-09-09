@@ -88,8 +88,8 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span>Vehicule: {data.vehicule.length}</span>
-                <span>Unice: {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
+                <span>Vehicule total: {data.vehicule.length}</span>
+                <span>Unice (nume): {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
                 <span>Categorii: {data.categorii.length}</span>
                 <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
               </div>
