@@ -131,6 +131,8 @@ export default function App() {
             onDeleteAcoperire={deleteAcoperire}
             onSaveOptiuneExtra={saveOptiuneExtra}
             onDeleteOptiuneExtra={deleteOptiuneExtra}
+            onSaveVehiclePhoto={saveVehiclePhoto}
+            onDeleteVehiclePhoto={deleteVehiclePhoto}
             onRefetch={refetch}
           />
         )}

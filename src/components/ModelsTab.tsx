@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X, Save } from 'lucide-react';
+import { Eye, Settings2, Edit3, Trash2, Plus, Download, Upload, X, Save, Image } from 'lucide-react';
 import { AppData, Vehicul, Categorie, Acoperire, OptiuneExtra, Fisier } from '../hooks/useSupabaseData';
+import PhotoGallery from './PhotoGallery';
+import VehiclePhotoManager from './VehiclePhotoManager';
 
 interface ModelsTabProps {
   data: AppData;
@@ -10,6 +12,8 @@ interface ModelsTabProps {
   onDeleteAcoperire: (id: string) => Promise<void>;
   onSaveOptiuneExtra: (optiune: Partial<OptiuneExtra>, file?: File) => Promise<void>;
   onDeleteOptiuneExtra: (id: string) => Promise<void>;
+  onSaveVehiclePhoto: (photo: any) => Promise<void>;
+  onDeleteVehiclePhoto: (id: string) => Promise<void>;
   onRefetch: () => void;
 }
 
@@ -21,6 +25,8 @@ export default function ModelsTab({
   onDeleteAcoperire, 
   onSaveOptiuneExtra, 
   onDeleteOptiuneExtra, 
+  onSaveVehiclePhoto,
+  onDeleteVehiclePhoto,
   onRefetch 
 }: ModelsTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +36,10 @@ export default function ModelsTab({
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
   const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
   const [editingDetails, setEditingDetails] = useState<Vehicul | null>(null);
+  const [managingPhotos, setManagingPhotos] = useState<Vehicul | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryPhotos, setGalleryPhotos] = useState<any[]>([]);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
   const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
@@ -411,6 +421,15 @@ export default function ModelsTab({
                         <Eye className="w-4 h-4" />
                       </button>
                       
+                      {/* Manage Photos Button */}
+                      <button
+                        onClick={() => setManagingPhotos(vehicle)}
+                        className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Gestionează poze"
+                      >
+                        <Image className="w-4 h-4" />
+                      </button>
+                      
                       {/* Edit Details Button */}
                       <button
                         onClick={() => setEditingDetails(vehicle)}
@@ -669,6 +688,41 @@ export default function ModelsTab({
                 </div>
               </div>
 
+              {/* Photo Gallery */}
+              {viewingVehicle.photos && viewingVehicle.photos.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Galerie Poze</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {viewingVehicle.photos.map((photo, index) => (
+                      <div
+                        key={photo.id}
+                        className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                          setGalleryPhotos(viewingVehicle.photos);
+                          setGalleryInitialIndex(index);
+                          setGalleryOpen(true);
+                        }}
+                      >
+                        <img
+                          src={photo.photoUrl}
+                          alt={photo.photoTitle || `Poza ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://via.placeholder.com/300x200/e5e7eb/6b7280?text=Imagine+indisponibila';
+                          }}
+                        />
+                        {photo.photoTitle && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-2">
+                            {photo.photoTitle}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Acoperiri */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Acoperiri disponibile</h4>
@@ -750,6 +804,43 @@ export default function ModelsTab({
           </div>
         </div>
       )}
+
+      {/* Manage Photos Modal */}
+      {managingPhotos && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Gestionează Poze: {managingPhotos.producator} {managingPhotos.model}
+              </h3>
+              <button
+                onClick={() => setManagingPhotos(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <VehiclePhotoManager
+                vehicleId={managingPhotos.id}
+                vehicleName={`${managingPhotos.producator} ${managingPhotos.model}`}
+                photos={managingPhotos.photos || []}
+                onSavePhoto={onSaveVehiclePhoto}
+                onDeletePhoto={onDeleteVehiclePhoto}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Gallery Modal */}
+      <PhotoGallery
+        photos={galleryPhotos}
+        isOpen={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        initialIndex={galleryInitialIndex}
+      />
 
       {/* Edit Details Modal */}
       {editingDetails && (

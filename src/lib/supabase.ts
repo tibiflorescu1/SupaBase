@@ -85,3 +85,13 @@ export interface DatabaseFisier {
   data_url: string;
   created_at?: string;
 }
+
+export interface DatabaseVehiclePhoto {
+  id: string;
+  vehicul_id: string;
+  photo_url: string;
+  photo_title: string;
+  order_index: number;
+  created_at?: string;
+  updated_at?: string;
+}
