@@ -141,16 +141,13 @@ export default function ModelsTab({
         pret: Number(savedAcoperire.pret),
         linkFisier: savedAcoperire.link_fisier || undefined,
         fisier: savedAcoperire.fisier_id ? { nume: newAcoperire.file?.name || 'File', dataUrl: '' } : undefined
-        const realAcoperire = await onSaveAcoperire({
-          ...newAcoperire,
-          vehicul_id: vehicleId
-        });
-        
-        setTempVehicleData(prev => ({
+      };
+      
+      setEditingDetails(prev => {
+        if (!prev) return prev;
+        return {
           ...prev,
           acoperiri: [...prev.acoperiri, realAcoperire]
-        }));
-        
         };
       });
       
