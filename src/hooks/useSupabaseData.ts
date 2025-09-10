@@ -454,7 +454,6 @@ export function useSupabaseData() {
       try {
           const { error } = await supabase.from('acoperiri').delete().eq('id', id);
           if (error) throw error;
-          await loadData();
       } catch (err) {
           console.error('Error deleting coverage:', err);
           throw err;
@@ -554,7 +553,6 @@ export function useSupabaseData() {
       try {
           const { error } = await supabase.from('optiuni_extra').delete().eq('id', id);
           if (error) throw error;
-          await loadData();
       } catch (err) {
           console.error('Error deleting extra option:', err);
           throw err;

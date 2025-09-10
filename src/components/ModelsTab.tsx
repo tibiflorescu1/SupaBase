@@ -230,7 +230,14 @@ export default function ModelsTab({
     
     try {
       await onDeleteAcoperire(acoperireId);
-      onRefetch();
+      // Update local state immediately
+      setEditingDetails(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          acoperiri: prev.acoperiri.filter(ac => ac.id !== acoperireId)
+        };
+      });
     } catch (error) {
       console.error('Error deleting acoperire:', error);
     }
@@ -241,7 +248,14 @@ export default function ModelsTab({
     
     try {
       await onDeleteOptiuneExtra(optiuneId);
-      onRefetch();
+      // Update local state immediately
+      setEditingDetails(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          optiuniExtra: prev.optiuniExtra.filter(opt => opt.id !== optiuneId)
+        };
+      });
     } catch (error) {
       console.error('Error deleting optiune:', error);
     }
