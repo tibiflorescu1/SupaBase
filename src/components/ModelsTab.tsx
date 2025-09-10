@@ -133,7 +133,7 @@ export default function ModelsTab({
         nume: savedAcoperire.nume,
         pret: Number(savedAcoperire.pret),
         linkFisier: savedAcoperire.link_fisier || undefined,
-        fisier: savedAcoperire.fisier_id ? { nume: newAcoperire.file?.name || 'File', dataUrl: '' } : undefined
+      };
       };
         vehicul_id: vehicleId
       });
