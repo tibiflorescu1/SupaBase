@@ -340,7 +340,7 @@ export function useSupabaseData() {
           .insert(dbVehicul);
         if (error) throw error;
       }
-      await loadData(); // Reload data
+      // Nu mai facem loadData() automat - doar la cerere
     } catch (err) {
       console.error('Error saving vehicle:', err);
       throw err;
@@ -354,7 +354,7 @@ export function useSupabaseData() {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      await loadData(); // Reload data
+      // Nu mai facem loadData() automat - doar la cerere
     } catch (err) {
       console.error('Error deleting vehicle:', err);
       throw err;

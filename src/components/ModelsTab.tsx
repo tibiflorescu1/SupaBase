@@ -96,7 +96,7 @@ export default function ModelsTab({
         perioadaFabricatie: ''
       });
       setShowAddForm(false);
-      onRefetch();
+      // Nu mai facem refetch aici - se va face automat prin hook
     } catch (error) {
       console.error('Error adding vehicle:', error);
     }
@@ -108,7 +108,7 @@ export default function ModelsTab({
     try {
       await onSaveVehicul(editingVehicle);
       setEditingVehicle(null);
-      onRefetch();
+      // Nu mai facem refetch aici - se va face automat prin hook
     } catch (error) {
       console.error('Error updating vehicle:', error);
     }
@@ -119,7 +119,7 @@ export default function ModelsTab({
     
     try {
       await onDeleteVehicul(vehicleId);
-      onRefetch();
+      // Nu mai facem refetch aici - se va face automat prin hook
     } catch (error) {
       console.error('Error deleting vehicle:', error);
     }
@@ -135,13 +135,26 @@ export default function ModelsTab({
       await onSaveAcoperire({
         ...newAcoperire,
         vehicul_id: vehicleId
-      });
+      }, undefined, false); // shouldRefetch = false
       
       // Reset form but keep popup open
       setNewAcoperire({ nume: '', pret: 0 });
       
-      // Refresh data to show the new item
-      onRefetch();
+      // Update local state to show the new item immediately
+      if (editingDetails) {
+        const tempId = `temp_${Date.now()}`;
+        const newAcoperireItem = {
+          id: tempId,
+          nume: newAcoperire.nume,
+          pret: newAcoperire.pret,
+          linkFisier: undefined
+        };
+        
+        setEditingDetails(prev => prev ? {
+          ...prev,
+          acoperiri: [...prev.acoperiri, newAcoperireItem]
+        } : prev);
+      }
     } catch (error) {
       console.error('Error adding acoperire:', error);
       alert('Eroare la adăugarea acoperirii');
@@ -158,13 +171,26 @@ export default function ModelsTab({
       await onSaveOptiuneExtra({
         ...newOptiune,
         vehicul_id: vehicleId
-      });
+      }, undefined, false); // shouldRefetch = false
       
       // Reset form but keep popup open
       setNewOptiune({ nume: '', pret: 0 });
       
-      // Refresh data to show the new item
-      onRefetch();
+      // Update local state to show the new item immediately
+      if (editingDetails) {
+        const tempId = `temp_${Date.now()}`;
+        const newOptiuneItem = {
+          id: tempId,
+          nume: newOptiune.nume,
+          pret: newOptiune.pret,
+          linkFisier: undefined
+        };
+        
+        setEditingDetails(prev => prev ? {
+          ...prev,
+          optiuniExtra: [...prev.optiuniExtra, newOptiuneItem]
+        } : prev);
+      }
     } catch (error) {
       console.error('Error adding optiune:', error);
       alert('Eroare la adăugarea opțiunii');
@@ -288,7 +314,7 @@ export default function ModelsTab({
       }
       
       // Refresh data and close modal
-      await onRefetch();
+      // Nu mai facem refetch aici - doar închidem modalul
       setEditingDetails(null);
     } catch (error) {
       console.error('Error saving changes:', error);
