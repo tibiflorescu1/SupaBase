@@ -401,10 +401,13 @@ export function useSupabaseData() {
             // Explicitly set to null when empty string is provided
             (dbAcoperire as any).link_fisier = null;
         }
+
+        let savedAcoperire;
         if (acoperire.id) {
             try {
-                const { error } = await supabase.from('acoperiri').update(dbAcoperire).eq('id', acoperire.id);
+                const { data, error } = await supabase.from('acoperiri').update(dbAcoperire).eq('id', acoperire.id).select().single();
                 if (error) throw error;
+                savedAcoperire = data;
             } catch (error: any) {
                 // If link_fisier column doesn't exist, retry without it
                 if (error.message?.includes('link_fisier')) {
@@ -415,8 +418,9 @@ export function useSupabaseData() {
                         fisier_id: fisier_id,
                         updated_at: new Date().toISOString()
                     };
-                    const { error: retryError } = await supabase.from('acoperiri').update(dbAcoperireWithoutLink).eq('id', acoperire.id);
+                    const { data, error: retryError } = await supabase.from('acoperiri').update(dbAcoperireWithoutLink).eq('id', acoperire.id).select().single();
                     if (retryError) throw retryError;
+                    savedAcoperire = data;
                     console.warn('Saved without link_fisier - database column missing');
                 } else {
                     throw error;
@@ -424,8 +428,9 @@ export function useSupabaseData() {
             }
         } else {
             try {
-                const { data: newAcoperire, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
+                const { data, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
                 if (error) throw error;
+                savedAcoperire = data;
             } catch (error: any) {
                 // If link_fisier column doesn't exist, retry without it
                 if (error.message?.includes('link_fisier')) {
@@ -436,8 +441,9 @@ export function useSupabaseData() {
                         fisier_id: fisier_id,
                         updated_at: new Date().toISOString()
                     };
-                    const { data: newAcoperire, error: retryError } = await supabase.from('acoperiri').insert(dbAcoperireWithoutLink).select().single();
+                    const { data, error: retryError } = await supabase.from('acoperiri').insert(dbAcoperireWithoutLink).select().single();
                     if (retryError) throw retryError;
+                    savedAcoperire = data;
                     console.warn('Saved without link_fisier - database column missing');
                 } else {
                     throw error;
@@ -445,8 +451,8 @@ export function useSupabaseData() {
             }
         }
         
-        // Nu mai facem refetch deloc - doar salvăm în DB
-        // Actualizarea UI se face local în componente
+        // Return the saved acoperire with real database ID
+        return savedAcoperire;
     } catch (err) {
         console.error('Error saving coverage:', err);
         throw err;
@@ -503,10 +509,13 @@ export function useSupabaseData() {
             // Explicitly set to null when empty string is provided
             (dbOptiune as any).link_fisier = null;
         }
+
+        let savedOptiune;
         if (optiune.id) {
             try {
-                const { error } = await supabase.from('optiuni_extra').update(dbOptiune).eq('id', optiune.id);
+                const { data, error } = await supabase.from('optiuni_extra').update(dbOptiune).eq('id', optiune.id).select().single();
                 if (error) throw error;
+                savedOptiune = data;
             } catch (error: any) {
                 // If link_fisier column doesn't exist, retry without it
                 if (error.message?.includes('link_fisier')) {
@@ -517,8 +526,9 @@ export function useSupabaseData() {
                         fisier_id: fisier_id,
                         updated_at: new Date().toISOString()
                     };
-                    const { error: retryError } = await supabase.from('optiuni_extra').update(dbOptiuneWithoutLink).eq('id', optiune.id);
+                    const { data, error: retryError } = await supabase.from('optiuni_extra').update(dbOptiuneWithoutLink).eq('id', optiune.id).select().single();
                     if (retryError) throw retryError;
+                    savedOptiune = data;
                     console.warn('Saved without link_fisier - database column missing');
                 } else {
                     throw error;
@@ -526,8 +536,9 @@ export function useSupabaseData() {
             }
         } else {
             try {
-                const { data: newOptiune, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
+                const { data, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
                 if (error) throw error;
+                savedOptiune = data;
             } catch (error: any) {
                 // If link_fisier column doesn't exist, retry without it
                 if (error.message?.includes('link_fisier')) {
@@ -538,8 +549,9 @@ export function useSupabaseData() {
                         fisier_id: fisier_id,
                         updated_at: new Date().toISOString()
                     };
-                    const { data: newOptiune, error: retryError } = await supabase.from('optiuni_extra').insert(dbOptiuneWithoutLink).select().single();
+                    const { data, error: retryError } = await supabase.from('optiuni_extra').insert(dbOptiuneWithoutLink).select().single();
                     if (retryError) throw retryError;
+                    savedOptiune = data;
                     console.warn('Saved without link_fisier - database column missing');
                 } else {
                     throw error;
@@ -547,8 +559,8 @@ export function useSupabaseData() {
             }
         }
         
-        // Nu mai facem refetch deloc - doar salvăm în DB
-        // Actualizarea UI se face local în componente
+        // Return the saved optiune with real database ID
+        return savedOptiune;
     } catch (err) {
         console.error('Error saving extra option:', err);
         throw err;
