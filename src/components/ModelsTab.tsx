@@ -35,6 +35,7 @@ export default function ModelsTab({
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({
     producator: '',
+  const [tempVehicleData, setTempVehicleData] = useState<any>(null);
     model: '',
     categorieId: '',
     perioadaFabricatie: ''
