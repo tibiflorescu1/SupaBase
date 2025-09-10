@@ -127,18 +127,18 @@ export default function ModelsTab({
   };
 
   const handleAddAcoperire = async (vehicleId: string) => {
-      // Add to local state with real ID from database
-      const realAcoperire: Acoperire = {
-        id: savedAcoperire.id,
-        nume: savedAcoperire.nume,
-        pret: Number(savedAcoperire.pret),
-        linkFisier: savedAcoperire.link_fisier || undefined,
-        fisier: savedAcoperire.fisier_id ? { nume: newAcoperire.file?.name || 'File', dataUrl: '' } : undefined
-      };
+    if (!newAcoperire.nume.trim() || newAcoperire.pret <= 0) {
+      alert('Completează numele și prețul pentru acoperire');
+      return;
+    }
+    
+    try {
+      await onSaveAcoperire({
+        ...newAcoperire,
         vehicul_id: vehicleId
       });
       
-        acoperiri: [...prev.acoperiri, realAcoperire]
+      // Reset form but keep popup open
       setNewAcoperire({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
@@ -150,18 +150,18 @@ export default function ModelsTab({
   };
 
   const handleAddOptiune = async (vehicleId: string) => {
-      // Add to local state with real ID from database
-      const realOptiune: OptiuneExtra = {
-        id: savedOptiune.id,
-        nume: savedOptiune.nume,
-        pret: Number(savedOptiune.pret),
-        linkFisier: savedOptiune.link_fisier || undefined,
-        fisier: savedOptiune.fisier_id ? { nume: newOptiune.file?.name || 'File', dataUrl: '' } : undefined
-      };
+    if (!newOptiune.nume.trim() || newOptiune.pret <= 0) {
+      alert('Completează numele și prețul pentru opțiune');
+      return;
+    }
+    
+    try {
+      await onSaveOptiuneExtra({
+        ...newOptiune,
         vehicul_id: vehicleId
       });
       
-        optiuniExtra: [...prev.optiuniExtra, realOptiune]
+      // Reset form but keep popup open
       setNewOptiune({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
@@ -230,8 +230,11 @@ export default function ModelsTab({
     if (!confirm('Ești sigur că vrei să ștergi această acoperire?')) return;
     
     try {
-      await onDeleteAcoperire(acoperireId);
-      // Update local state immediately
+      // Check if it's a real database ID (not temporary)
+      if (!acoperireId.startsWith('temp_')) {
+        await onDeleteAcoperire(acoperireId);
+      }
+      // Always remove from local state
       setEditingDetails(prev => {
         if (!prev) return prev;
         return {
@@ -248,8 +251,11 @@ export default function ModelsTab({
     if (!confirm('Ești sigur că vrei să ștergi această opțiune?')) return;
     
     try {
-      await onDeleteOptiuneExtra(optiuneId);
-      // Update local state immediately
+      // Check if it's a real database ID (not temporary)
+      if (!optiuneId.startsWith('temp_')) {
+        await onDeleteOptiuneExtra(optiuneId);
+      }
+      // Always remove from local state
       setEditingDetails(prev => {
         if (!prev) return prev;
         return {
