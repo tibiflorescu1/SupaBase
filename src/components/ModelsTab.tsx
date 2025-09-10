@@ -28,6 +28,16 @@ export default function ModelsTab({
   const [selectedProducer, setSelectedProducer] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
+  const [saving, setSaving] = useState(false);
+  
+  // Stare temporară pentru pop-up - toate modificările rămân aici până la salvare
+  const [tempVehicleData, setTempVehicleData] = useState<{
+    vehicul: Vehicul;
+    acoperiri: Acoperire[];
+    optiuni: OptiuneExtra[];
+    deletedAcoperiri: string[];
+    deletedOptiuni: string[];
+  } | null>(null);
   const [viewingVehicle, setViewingVehicle] = useState<Vehicul | null>(null);
   const [editingDetails, setEditingDetails] = useState<Vehicul | null>(null);
   const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
@@ -80,6 +90,18 @@ export default function ModelsTab({
     link.click();
   };
 
+  const handleEditVehicle = (vehicul: Vehicul) => {
+    // Inițializez sandbox-ul temporar cu datele curente
+    setTempVehicleData({
+      vehicul: { ...vehicul },
+      acoperiri: [...vehicul.acoperiri],
+      optiuni: [...vehicul.optiuniExtra],
+      deletedAcoperiri: [],
+      deletedOptiuni: []
+    });
+    setEditingVehicle(vehicul);
+  };
+
   const handleAddVehicle = async () => {
     try {
       await onSaveVehicul({
@@ -126,71 +148,42 @@ export default function ModelsTab({
     }
   };
 
-  const handleAddAcoperire = async (vehicleId: string) => {
-    try {
-      const savedAcoperire = await onSaveAcoperire({
-        nume: newAcoperire.nume,
-        pret: newAcoperire.pret,
-        vehicul_id: vehicleId
-      });
-      
-      // Add to local state with real ID from database
-      const realAcoperire: Acoperire = {
-        id: savedAcoperire.id,
-        nume: savedAcoperire.nume,
-        pret: Number(savedAcoperire.pret),
-        linkFisier: savedAcoperire.link_fisier || undefined,
+  const handleAddAcoperire = (acoperire: Omit<Acoperire, 'id'>, file?: File) => {
+    if (!tempVehicleData) return;
+    
+    // Adaug în sandbox-ul temporar cu ID temporar
+    const newAcoperire: Acoperire = {
+      ...acoperire,
+      id: `temp_${Date.now()}_${Math.random()}`,
+      fisier: file ? { nume: file.name, dataUrl: '' } : undefined
+    };
+    
+    setTempVehicleData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        acoperiri: [...prev.acoperiri, newAcoperire]
       };
-      
-      setEditingDetails(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          acoperiri: [...prev.acoperiri, realAcoperire]
-        };
-      });
-      setNewAcoperire({ nume: '', pret: 0 });
-      
-      // Refresh data to show the new item
-      onRefetch();
-    } catch (error) {
-      console.error('Error adding acoperire:', error);
-      alert('Eroare la adăugarea acoperirii');
-    }
+    });
   };
 
-  const handleAddOptiune = async (vehicleId: string) => {
-    try {
-      const savedOptiune = await onSaveOptiuneExtra({
-        nume: newOptiune.nume,
-        pret: newOptiune.pret,
-        vehicul_id: vehicleId
-      });
-      
-      // Add to local state with real ID from database
-      const realOptiune: OptiuneExtra = {
-        id: savedOptiune.id,
-        nume: savedOptiune.nume,
-        pret: Number(savedOptiune.pret),
-        linkFisier: savedOptiune.link_fisier || undefined,
-        fisier: savedOptiune.fisier_id ? { nume: newOptiune.file?.name || 'File', dataUrl: '' } : undefined
+  const handleAddOptiune = (optiune: Omit<OptiuneExtra, 'id'>, file?: File) => {
+    if (!tempVehicleData) return;
+    
+    // Adaug în sandbox-ul temporar cu ID temporar
+    const newOptiune: OptiuneExtra = {
+      ...optiune,
+      id: `temp_${Date.now()}_${Math.random()}`,
+      fisier: file ? { nume: file.name, dataUrl: '' } : undefined
+    };
+    
+    setTempVehicleData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        optiuni: [...prev.optiuni, newOptiune]
       };
-      
-      setEditingDetails(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          optiuniExtra: [...prev.optiuniExtra, realOptiune]
-        };
-      });
-      setNewOptiune({ nume: '', pret: 0 });
-      
-      // Refresh data to show the new item
-      onRefetch();
-    } catch (error) {
-      console.error('Error adding optiune:', error);
-      alert('Eroare la adăugarea opțiunii');
-    }
+    });
   };
 
   const handleUpdateAcoperire = async (acoperire: Acoperire, file?: File) => {
@@ -247,39 +240,172 @@ export default function ModelsTab({
     }
   };
 
-  const handleDeleteAcoperire = async (acoperireId: string) => {
-    if (!confirm('Ești sigur că vrei să ștergi această acoperire?')) return;
+  const handleDeleteAcoperire = (id: string) => {
+    if (!tempVehicleData) return;
     
-    try {
-      await onDeleteAcoperire(acoperireId);
-      // Update local state immediately
-      setEditingDetails(prev => {
-        if (!prev) return prev;
+    setTempVehicleData(prev => {
+      if (!prev) return prev;
+      
+      // Dacă e ID temporar, doar îl scot din listă
+      if (id.startsWith('temp_')) {
         return {
           ...prev,
-          acoperiri: prev.acoperiri.filter(ac => ac.id !== acoperireId)
+          acoperiri: prev.acoperiri.filter(a => a.id !== id)
         };
-      });
+      }
+      
+      // Dacă e ID real, îl marchez pentru ștergere și îl scot din listă
+      return {
+        ...prev,
+        acoperiri: prev.acoperiri.filter(a => a.id !== id),
+        deletedAcoperiri: [...prev.deletedAcoperiri, id]
+      };
+    });
+  };
+
+  const handleDeleteOptiune = (id: string) => {
+    if (!tempVehicleData) return;
+    
+    setTempVehicleData(prev => {
+      if (!prev) return prev;
+      
+      // Dacă e ID temporar, doar îl scot din listă
+      if (id.startsWith('temp_')) {
+        return {
+          ...prev,
+          optiuni: prev.optiuni.filter(o => o.id !== id)
+        };
+      }
+      
+      // Dacă e ID real, îl marchez pentru ștergere și îl scot din listă
+      return {
+        ...prev,
+        optiuni: prev.optiuni.filter(o => o.id !== id),
+        deletedOptiuni: [...prev.deletedOptiuni, id]
+      };
+    });
+  };
+
+  const handleUpdateAcoperire = (id: string, updates: Partial<Acoperire>) => {
+    if (!tempVehicleData) return;
+    
+    setTempVehicleData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        acoperiri: prev.acoperiri.map(a => 
+          a.id === id ? { ...a, ...updates } : a
+        )
+      };
+    });
+  };
+
+  const handleUpdateOptiune = (id: string, updates: Partial<OptiuneExtra>) => {
+    if (!tempVehicleData) return;
+    
+    setTempVehicleData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        optiuni: prev.optiuni.map(o => 
+          o.id === id ? { ...o, ...updates } : o
+        )
+      };
+    });
+  };
+
+  const handleSaveAllChanges = async () => {
+    if (!tempVehicleData || !editingVehicle) return;
+    
+    try {
+      setSaving(true);
+      
+      // 1. Șterg acoperirile marcate pentru ștergere
+      for (const id of tempVehicleData.deletedAcoperiri) {
+        await onDeleteAcoperire(id);
+      }
+      
+      // 2. Șterg opțiunile marcate pentru ștergere
+      for (const id of tempVehicleData.deletedOptiuni) {
+        await onDeleteOptiuneExtra(id);
+      }
+      
+      // 3. Salvez acoperirile noi (cele cu ID temporar)
+      const newAcoperiri = tempVehicleData.acoperiri.filter(a => a.id.startsWith('temp_'));
+      for (const acoperire of newAcoperiri) {
+        await onSaveAcoperire({
+          nume: acoperire.nume,
+          pret: acoperire.pret,
+          linkFisier: acoperire.linkFisier,
+          vehicul_id: editingVehicle.id
+        }, undefined, false);
+      }
+      
+      // 4. Salvez opțiunile noi (cele cu ID temporar)
+      const newOptiuni = tempVehicleData.optiuni.filter(o => o.id.startsWith('temp_'));
+      for (const optiune of newOptiuni) {
+        await onSaveOptiuneExtra({
+          nume: optiune.nume,
+          pret: optiune.pret,
+          linkFisier: optiune.linkFisier,
+          vehicul_id: editingVehicle.id
+        }, undefined, false);
+      }
+      
+      // 5. Actualizez acoperirile existente (cele cu ID real)
+      const existingAcoperiri = tempVehicleData.acoperiri.filter(a => !a.id.startsWith('temp_'));
+      for (const acoperire of existingAcoperiri) {
+        await onSaveAcoperire({
+          id: acoperire.id,
+          nume: acoperire.nume,
+          pret: acoperire.pret,
+          linkFisier: acoperire.linkFisier,
+          vehicul_id: editingVehicle.id
+        }, undefined, false);
+      }
+      
+      // 6. Actualizez opțiunile existente (cele cu ID real)
+      const existingOptiuni = tempVehicleData.optiuni.filter(o => !o.id.startsWith('temp_'));
+      for (const optiune of existingOptiuni) {
+        await onSaveOptiuneExtra({
+          id: optiune.id,
+          nume: optiune.nume,
+          pret: optiune.pret,
+          linkFisier: optiune.linkFisier,
+          vehicul_id: editingVehicle.id
+        }, undefined, false);
+      }
+      
+      // 7. Refetch final pentru a sincroniza datele
+      await onRefetch();
+      
+      // 8. Închid pop-up-ul
+      setEditingVehicle(null);
+      setTempVehicleData(null);
+      
     } catch (error) {
-      console.error('Error deleting acoperire:', error);
+      console.error('Error saving changes:', error);
+      alert('Eroare la salvarea modificărilor');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteOptiune = async (optiuneId: string) => {
-    if (!confirm('Ești sigur că vrei să ștergi această opțiune?')) return;
-    
+  const handleCancelEdit = () => {
+    // Anulează toate modificările și închide pop-up-ul
+    setEditingVehicle(null);
+    setTempVehicleData(null);
+  };
+
+  const handleAddVehicle = async (vehicleData: Omit<Vehicul, 'id' | 'acoperiri' | 'optiuniExtra'>) => {
     try {
-      await onDeleteOptiuneExtra(optiuneId);
-      // Update local state immediately
-      setEditingDetails(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          optiuniExtra: prev.optiuniExtra.filter(opt => opt.id !== optiuneId)
-        };
-      });
+      setSaving(true);
+      await onSaveVehicul(vehicleData);
+      onRefetch();
     } catch (error) {
-      console.error('Error deleting optiune:', error);
+      console.error('Error adding vehicle:', error);
+    } finally {
+      setSaving(false);
     }
   };
   // Save all changes function
@@ -457,7 +583,7 @@ export default function ModelsTab({
                       
                       {/* Edit Vehicle Button */}
                       <button
-                        onClick={() => setEditingVehicle(vehicle)}
+                        onClick={() => handleEditVehicle(vehicle)}
                         className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors"
                         title="Editează model"
                       >
@@ -572,91 +698,19 @@ export default function ModelsTab({
 
       {/* Edit Vehicle Modal */}
       {editingVehicle && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Editează Model</h3>
-              <button
-                onClick={() => setEditingVehicle(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Producător
-                </label>
-                <input
-                  type="text"
-                  value={editingVehicle.producator}
-                  onChange={(e) => setEditingVehicle({ ...editingVehicle, producator: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Model
-                </label>
-                <input
-                  type="text"
-                  value={editingVehicle.model}
-                  onChange={(e) => setEditingVehicle({ ...editingVehicle, model: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Categorie
-                </label>
-                <select
-                  value={editingVehicle.categorieId}
-                  onChange={(e) => setEditingVehicle({ ...editingVehicle, categorieId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Selectează categoria</option>
-                  {data.categorii.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.nume}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Perioada fabricație
-                </label>
-                <input
-                  type="text"
-                  value={editingVehicle.perioadaFabricatie}
-                  onChange={(e) => setEditingVehicle({ ...editingVehicle, perioadaFabricatie: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="ex: 2020-2024"
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleUpdateVehicle}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
-              >
-                Salvează
-              </button>
-              <button
-                onClick={handleCancelEdit}
-                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
-              >
-                Anulează
-              </button>
-            </div>
-          </div>
-        </div>
+        <VehicleEditModal
+          vehicle={editingVehicle}
+          tempData={tempVehicleData}
+          onSave={handleSaveAllChanges}
+          onCancel={handleCancelEdit}
+          onAddAcoperire={handleAddAcoperire}
+          onAddOptiune={handleAddOptiune}
+          onDeleteAcoperire={handleDeleteAcoperire}
+          onDeleteOptiune={handleDeleteOptiune}
+          onUpdateAcoperire={handleUpdateAcoperire}
+          onUpdateOptiune={handleUpdateOptiune}
+          saving={saving}
+        />
       )}
 
       {/* View Details Modal */}
@@ -1174,6 +1228,431 @@ export default function ModelsTab({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+interface VehicleEditModalProps {
+  vehicle: Vehicul;
+  tempData: {
+    vehicul: Vehicul;
+    acoperiri: Acoperire[];
+    optiuni: OptiuneExtra[];
+    deletedAcoperiri: string[];
+    deletedOptiuni: string[];
+  } | null;
+  onSave: () => void;
+  onCancel: () => void;
+  onAddAcoperire: (acoperire: Omit<Acoperire, 'id'>, file?: File) => void;
+  onAddOptiune: (optiune: Omit<OptiuneExtra, 'id'>, file?: File) => void;
+  onDeleteAcoperire: (id: string) => void;
+  onDeleteOptiune: (id: string) => void;
+  onUpdateAcoperire: (id: string, updates: Partial<Acoperire>) => void;
+  onUpdateOptiune: (id: string, updates: Partial<OptiuneExtra>) => void;
+  saving: boolean;
+}
+
+function VehicleEditModal({
+  vehicle,
+  tempData,
+  onSave,
+  onCancel,
+  onAddAcoperire,
+  onAddOptiune,
+  onDeleteAcoperire,
+  onDeleteOptiune,
+  onUpdateAcoperire,
+  onUpdateOptiune,
+  saving
+}: VehicleEditModalProps) {
+  const [activeTab, setActiveTab] = useState<'acoperiri' | 'optiuni'>('acoperiri');
+  const [newAcoperire, setNewAcoperire] = useState({ nume: '', pret: 0 });
+  const [newOptiune, setNewOptiune] = useState({ nume: '', pret: 0 });
+  const [newAcoperireFile, setNewAcoperireFile] = useState<File | null>(null);
+  const [newOptiuneFile, setNewOptiuneFile] = useState<File | null>(null);
+  const [showAddAcoperire, setShowAddAcoperire] = useState(false);
+  const [showAddOptiune, setShowAddOptiune] = useState(false);
+  
+  // Folosesc datele temporare pentru afișare
+  const displayAcoperiri = tempData?.acoperiri || [];
+  const displayOptiuni = tempData?.optiuni || [];
+
+  const handleAddAcoperireSubmit = () => {
+    if (newAcoperire.nume && newAcoperire.pret > 0) {
+      onAddAcoperire(newAcoperire, newAcoperireFile || undefined);
+      setNewAcoperire({ nume: '', pret: 0 });
+      setNewAcoperireFile(null);
+      setShowAddAcoperire(false);
+    }
+  };
+
+  const handleAddOptiuneSubmit = () => {
+    if (newOptiune.nume && newOptiune.pret > 0) {
+      onAddOptiune(newOptiune, newOptiuneFile || undefined);
+      setNewOptiune({ nume: '', pret: 0 });
+      setNewOptiuneFile(null);
+      setShowAddOptiune(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 className="text-xl font-semibold text-gray-900">
+              Editează: {vehicle.producator} {vehicle.model}
+            </h3>
+            <button
+              onClick={onCancel}
+              className="text-gray-400 hover:text-gray-600"
+              disabled={saving}
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="px-6 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('acoperiri')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'acoperiri'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Acoperiri ({displayAcoperiri.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('optiuni')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'optiuni'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Opțiuni Extra ({displayOptiuni.length})
+              </button>
+            </nav>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {activeTab === 'acoperiri' && (
+              <div className="space-y-4">
+                {/* Add new acoperire button */}
+                <div className="flex justify-between items-center">
+                  <h4 className="text-lg font-medium text-gray-900">Acoperiri</h4>
+                  <button
+                    onClick={() => setShowAddAcoperire(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                    disabled={saving}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Adaugă acoperire
+                  </button>
+                </div>
+
+                {/* Add acoperire form */}
+                {showAddAcoperire && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nume acoperire
+                        </label>
+                        <input
+                          type="text"
+                          value={newAcoperire.nume}
+                          onChange={(e) => setNewAcoperire({ ...newAcoperire, nume: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="ex: Folie transparentă"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Preț (RON)
+                        </label>
+                        <input
+                          type="number"
+                          value={newAcoperire.pret}
+                          onChange={(e) => setNewAcoperire({ ...newAcoperire, pret: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fișier (opțional)
+                        </label>
+                        <input
+                          type="file"
+                          onChange={(e) => setNewAcoperireFile(e.target.files?.[0] || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={handleAddAcoperireSubmit}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                        disabled={!newAcoperire.nume || newAcoperire.pret <= 0}
+                      >
+                        Adaugă
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAddAcoperire(false);
+                          setNewAcoperire({ nume: '', pret: 0 });
+                          setNewAcoperireFile(null);
+                        }}
+                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+                      >
+                        Anulează
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Acoperiri table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Nume
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Preț
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Link fișier
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Acțiuni
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {displayAcoperiri.map((acoperire) => (
+                        <tr key={acoperire.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="text"
+                              value={acoperire.nume}
+                              onChange={(e) => onUpdateAcoperire(acoperire.id, { nume: e.target.value })}
+                              className="text-sm font-medium text-gray-900 border-none bg-transparent focus:bg-white focus:border focus:border-blue-300 rounded px-2 py-1 w-full"
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="number"
+                              value={acoperire.pret}
+                              onChange={(e) => onUpdateAcoperire(acoperire.id, { pret: parseFloat(e.target.value) || 0 })}
+                              className="text-sm text-gray-900 border-none bg-transparent focus:bg-white focus:border focus:border-blue-300 rounded px-2 py-1 w-20"
+                            />
+                            <span className="text-sm text-gray-500 ml-1">RON</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="url"
+                              value={acoperire.linkFisier || ''}
+                              onChange={(e) => onUpdateAcoperire(acoperire.id, { linkFisier: e.target.value })}
+                              placeholder="https://drive.google.com/..."
+                              className="text-sm text-gray-900 border-none bg-transparent focus:bg-white focus:border focus:border-blue-300 rounded px-2 py-1 w-full"
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => onDeleteAcoperire(acoperire.id)}
+                              className="text-red-600 hover:text-red-900"
+                              disabled={saving}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {displayAcoperiri.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      Nu există acoperiri definite
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'optiuni' && (
+              <div className="space-y-4">
+                {/* Add new optiune button */}
+                <div className="flex justify-between items-center">
+                  <h4 className="text-lg font-medium text-gray-900">Opțiuni Extra</h4>
+                  <button
+                    onClick={() => setShowAddOptiune(true)}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                    disabled={saving}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Adaugă opțiune
+                  </button>
+                </div>
+
+                {/* Add optiune form */}
+                {showAddOptiune && (
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nume opțiune
+                        </label>
+                        <input
+                          type="text"
+                          value={newOptiune.nume}
+                          onChange={(e) => setNewOptiune({ ...newOptiune, nume: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="ex: Protecție faruri"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Preț (RON)
+                        </label>
+                        <input
+                          type="number"
+                          value={newOptiune.pret}
+                          onChange={(e) => setNewOptiune({ ...newOptiune, pret: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fișier (opțional)
+                        </label>
+                        <input
+                          type="file"
+                          onChange={(e) => setNewOptiuneFile(e.target.files?.[0] || null)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={handleAddOptiuneSubmit}
+                        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                        disabled={!newOptiune.nume || newOptiune.pret <= 0}
+                      >
+                        Adaugă
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAddOptiune(false);
+                          setNewOptiune({ nume: '', pret: 0 });
+                          setNewOptiuneFile(null);
+                        }}
+                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+                      >
+                        Anulează
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Optiuni table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Nume
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Preț
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Link fișier
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Acțiuni
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {displayOptiuni.map((optiune) => (
+                        <tr key={optiune.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="text"
+                              value={optiune.nume}
+                              onChange={(e) => onUpdateOptiune(optiune.id, { nume: e.target.value })}
+                              className="text-sm font-medium text-gray-900 border-none bg-transparent focus:bg-white focus:border focus:border-blue-300 rounded px-2 py-1 w-full"
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="number"
+                              value={optiune.pret}
+                              onChange={(e) => onUpdateOptiune(optiune.id, { pret: parseFloat(e.target.value) || 0 })}
+                              className="text-sm text-gray-900 border-none bg-transparent focus:bg-white focus:border focus:border-blue-300 rounded px-2 py-1 w-20"
+                            />
+                            <span className="text-sm text-gray-500 ml-1">RON</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="url"
+                              value={optiune.linkFisier || ''}
+                              onChange={(e) => onUpdateOptiune(optiune.id, { linkFisier: e.target.value })}
+                              placeholder="https://drive.google.com/..."
+                              className="text-sm text-gray-900 border-none bg-transparent focus:bg-white focus:border focus:border-blue-300 rounded px-2 py-1 w-full"
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => onDeleteOptiune(optiune.id)}
+                              className="text-red-600 hover:text-red-900"
+                              disabled={saving}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {displayOptiuni.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      Nu există opțiuni extra definite
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                disabled={saving}
+              >
+                Anulează
+              </button>
+              <button
+                onClick={onSave}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                disabled={saving}
+              >
+                {saving ? 'Se salvează...' : 'Salvează Toate Modificările'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
