@@ -361,23 +361,23 @@ export function useSupabaseData() {
     }
   };
 
-  const saveAcoperire = async (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }) => {
+  const saveAcoperire = async (acoperire: Omit<Acoperire, 'id'> & { id?: string, vehicul_id: string }, file?: File, shouldRefetch: boolean = true) => {
     try {
         let fisier_id = null;
         let dataUrl = '';
         
         // Handle file upload if present
-        if ((acoperire as any).file) {
-            const file = (acoperire as any).file;
+        if (file || (acoperire as any).file) {
+            const fileToUpload = file || (acoperire as any).file;
             const reader = new FileReader();
             dataUrl = await new Promise<string>((resolve) => {
                 reader.onload = (e) => resolve(e.target?.result as string);
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(fileToUpload);
             });
             
             const { data: fileData, error: fileError } = await supabase
                 .from('fisiere')
-                .insert({ nume: file.name, data_url: dataUrl })
+                .insert({ nume: fileToUpload.name, data_url: dataUrl })
                 .select()
                 .single();
             
@@ -443,6 +443,11 @@ export function useSupabaseData() {
                     throw error;
                 }
             }
+        }
+        
+        // Only refetch if explicitly requested (for saves from edit modal)
+        if (shouldRefetch) {
+            await loadData();
         }
     } catch (err) {
         console.error('Error saving coverage:', err);
