@@ -127,18 +127,18 @@ export default function ModelsTab({
   };
 
   const handleAddAcoperire = async (vehicleId: string) => {
-    if (!newAcoperire.nume.trim() || newAcoperire.pret <= 0) {
-      alert('Completează numele și prețul pentru acoperire');
-      return;
-    }
-    
-    try {
-      await onSaveAcoperire({
-        ...newAcoperire,
+      // Add to local state with real ID from database
+      const realAcoperire: Acoperire = {
+        id: savedAcoperire.id,
+        nume: savedAcoperire.nume,
+        pret: Number(savedAcoperire.pret),
+        linkFisier: savedAcoperire.link_fisier || undefined,
+        fisier: savedAcoperire.fisier_id ? { nume: newAcoperire.file?.name || 'File', dataUrl: '' } : undefined
+      };
         vehicul_id: vehicleId
       });
       
-      // Reset form but keep popup open
+        acoperiri: [...prev.acoperiri, realAcoperire]
       setNewAcoperire({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
@@ -150,18 +150,18 @@ export default function ModelsTab({
   };
 
   const handleAddOptiune = async (vehicleId: string) => {
-    if (!newOptiune.nume.trim() || newOptiune.pret <= 0) {
-      alert('Completează numele și prețul pentru opțiune');
-      return;
-    }
-    
-    try {
-      await onSaveOptiuneExtra({
-        ...newOptiune,
+      // Add to local state with real ID from database
+      const realOptiune: OptiuneExtra = {
+        id: savedOptiune.id,
+        nume: savedOptiune.nume,
+        pret: Number(savedOptiune.pret),
+        linkFisier: savedOptiune.link_fisier || undefined,
+        fisier: savedOptiune.fisier_id ? { nume: newOptiune.file?.name || 'File', dataUrl: '' } : undefined
+      };
         vehicul_id: vehicleId
       });
       
-      // Reset form but keep popup open
+        optiuniExtra: [...prev.optiuniExtra, realOptiune]
       setNewOptiune({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
