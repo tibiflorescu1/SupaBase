@@ -128,28 +128,21 @@ export default function ModelsTab({
 
   const handleAddAcoperire = async (vehicleId: string) => {
     try {
-      const realAcoperire = await onSaveAcoperire({
+      const savedAcoperire = await onSaveAcoperire({
         nume: newAcoperire.nume,
         pret: newAcoperire.pret,
         vehicul_id: vehicleId
       });
       
       // Add to local state with real ID from database
-      const savedAcoperire: Acoperire = {
-        id: realAcoperire.id,
-        nume: realAcoperire.nume,
-        pret: Number(realAcoperire.pret),
-        linkFisier: realAcoperire.link_fisier || undefined,
+      const realAcoperire: Acoperire = {
+        id: savedAcoperire.id,
+        nume: savedAcoperire.nume,
+        pret: Number(savedAcoperire.pret),
+        linkFisier: savedAcoperire.link_fisier || undefined,
+        fisier: savedAcoperire.fisier_id ? { nume: newAcoperire.file?.name || 'File', dataUrl: '' } : undefined
       };
-      
-      setEditingDetails(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          acoperiri: [...prev.acoperiri, savedAcoperire]
-        };
-      });
-      
+        
       setNewAcoperire({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
@@ -162,26 +155,26 @@ export default function ModelsTab({
 
   const handleAddOptiune = async (vehicleId: string) => {
     try {
-      const realOptiune = await onSaveOptiuneExtra({
+      const savedOptiune = await onSaveOptiuneExtra({
         nume: newOptiune.nume,
         pret: newOptiune.pret,
         vehicul_id: vehicleId
       });
       
       // Add to local state with real ID from database
-      const savedOptiune: OptiuneExtra = {
-        id: realOptiune.id,
-        nume: realOptiune.nume,
-        pret: Number(realOptiune.pret),
-        linkFisier: realOptiune.link_fisier || undefined,
-        fisier: realOptiune.fisier_id ? { nume: newOptiune.file?.name || 'File', dataUrl: '' } : undefined
+      const realOptiune: OptiuneExtra = {
+        id: savedOptiune.id,
+        nume: savedOptiune.nume,
+        pret: Number(savedOptiune.pret),
+        linkFisier: savedOptiune.link_fisier || undefined,
+        fisier: savedOptiune.fisier_id ? { nume: newOptiune.file?.name || 'File', dataUrl: '' } : undefined
       };
       
       setEditingDetails(prev => {
         if (!prev) return prev;
         return {
           ...prev,
-          optiuniExtra: [...prev.optiuniExtra, savedOptiune]
+          optiuniExtra: [...prev.optiuniExtra, realOptiune]
         };
       });
       
