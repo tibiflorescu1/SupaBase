@@ -445,10 +445,8 @@ export function useSupabaseData() {
             }
         }
         
-        // Only refetch if explicitly requested (for saves from edit modal)
-        if (shouldRefetch) {
-            await loadData();
-        }
+        // Nu mai facem refetch deloc - doar salvăm în DB
+        // Actualizarea UI se face local în componente
     } catch (err) {
         console.error('Error saving coverage:', err);
         throw err;
@@ -549,10 +547,8 @@ export function useSupabaseData() {
             }
         }
         
-        // Only refetch if explicitly requested (for saves from edit modal)
-        if (shouldRefetch) {
-            await loadData();
-        }
+        // Nu mai facem refetch deloc - doar salvăm în DB
+        // Actualizarea UI se face local în componente
     } catch (err) {
         console.error('Error saving extra option:', err);
         throw err;

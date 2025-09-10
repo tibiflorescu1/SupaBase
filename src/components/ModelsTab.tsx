@@ -623,7 +623,7 @@ export default function ModelsTab({
                 Salvează
               </button>
               <button
-                onClick={() => setEditingVehicle(null)}
+                onClick={handleCancelEdit}
                 className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
               >
                 Anulează
