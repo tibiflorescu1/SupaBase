@@ -126,58 +126,48 @@ export default function ModelsTab({
   };
 
   const handleAddAcoperire = async (vehicleId: string) => {
+    if (!newAcoperire.nume.trim() || newAcoperire.pret <= 0) {
+      alert('Completează numele și prețul pentru acoperire');
+      return;
+    }
+    
     try {
-      const result = await onSaveAcoperire({
+      await onSaveAcoperire({
         ...newAcoperire,
         vehicul_id: vehicleId
       });
       
-      // Update local editing state immediately
-      if (editingDetails && editingDetails.id === vehicleId) {
-        setEditingDetails(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            acoperiri: [...prev.acoperiri, {
-              id: result.id, // Use the returned ID from the save function
-              nume: newAcoperire.nume,
-              pret: newAcoperire.pret
-            }]
-          };
-        });
-      }
-      
+      // Reset form but keep popup open
       setNewAcoperire({ nume: '', pret: 0 });
+      
+      // Refresh data to show the new item
+      onRefetch();
     } catch (error) {
       console.error('Error adding acoperire:', error);
+      alert('Eroare la adăugarea acoperirii');
     }
   };
 
   const handleAddOptiune = async (vehicleId: string) => {
+    if (!newOptiune.nume.trim() || newOptiune.pret <= 0) {
+      alert('Completează numele și prețul pentru opțiune');
+      return;
+    }
+    
     try {
-      const result = await onSaveOptiuneExtra({
+      await onSaveOptiuneExtra({
         ...newOptiune,
         vehicul_id: vehicleId
       });
       
-      // Update local editing state immediately
-      if (editingDetails && editingDetails.id === vehicleId) {
-        setEditingDetails(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            optiuniExtra: [...prev.optiuniExtra, {
-              id: result.id, // Use the returned ID from the save function
-              nume: newOptiune.nume,
-              pret: newOptiune.pret
-            }]
-          };
-        });
-      }
-      
+      // Reset form but keep popup open
       setNewOptiune({ nume: '', pret: 0 });
+      
+      // Refresh data to show the new item
+      onRefetch();
     } catch (error) {
       console.error('Error adding optiune:', error);
+      alert('Eroare la adăugarea opțiunii');
     }
   };
 

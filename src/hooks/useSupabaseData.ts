@@ -422,43 +422,10 @@ export function useSupabaseData() {
                     throw error;
                 }
             }
-            
-            // Update main data state for file uploads
-            if (fisier_id) {
-              setData(prevData => ({
-                ...prevData,
-                vehicule: prevData.vehicule.map(vehicul => ({
-                  ...vehicul,
-                  acoperiri: vehicul.acoperiri.map(ac => 
-                    ac.id === acoperire.id 
-                      ? { 
-                          ...ac, 
-                          nume: acoperire.nume, 
-                          pret: acoperire.pret,
-                          fisier: fisier_id ? { nume: (acoperire as any).file.name, dataUrl } : undefined
-                        }
-                      : ac
-                  )
-                }))
-              }));
-            }
-            
-            return { 
-              id: acoperire.id,
-              fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
-            };
         } else {
             try {
                 const { data: newAcoperire, error } = await supabase.from('acoperiri').insert(dbAcoperire).select().single();
                 if (error) throw error;
-                
-                // Reload data to get the updated vehicle with new coverage
-                await loadData();
-                
-                return { 
-                  id: newAcoperire.id,
-                  fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
-                };
             } catch (error: any) {
                 // If link_fisier column doesn't exist, retry without it
                 if (error.message?.includes('link_fisier')) {
@@ -472,14 +439,6 @@ export function useSupabaseData() {
                     const { data: newAcoperire, error: retryError } = await supabase.from('acoperiri').insert(dbAcoperireWithoutLink).select().single();
                     if (retryError) throw retryError;
                     console.warn('Saved without link_fisier - database column missing');
-                    
-                    // Reload data to get the updated vehicle with new coverage
-                    await loadData();
-                    
-                    return { 
-                      id: newAcoperire.id,
-                      fisier: fisier_id ? { nume: (acoperire as any).file?.name || 'file', dataUrl } : undefined
-                    };
                 } else {
                     throw error;
                 }
@@ -563,43 +522,10 @@ export function useSupabaseData() {
                     throw error;
                 }
             }
-            
-            // Update main data state for file uploads
-            if (fisier_id) {
-              setData(prevData => ({
-                ...prevData,
-                vehicule: prevData.vehicule.map(vehicul => ({
-                  ...vehicul,
-                  optiuniExtra: vehicul.optiuniExtra.map(opt => 
-                    opt.id === optiune.id 
-                      ? { 
-                          ...opt, 
-                          nume: optiune.nume, 
-                          pret: optiune.pret,
-                          fisier: fisier_id ? { nume: (optiune as any).file.name, dataUrl } : undefined
-                        }
-                      : opt
-                  )
-                }))
-              }));
-            }
-            
-            return { 
-              id: optiune.id,
-              fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
-            };
         } else {
             try {
                 const { data: newOptiune, error } = await supabase.from('optiuni_extra').insert(dbOptiune).select().single();
                 if (error) throw error;
-                
-                // Reload data to get the updated vehicle with new option
-                await loadData();
-                
-                return { 
-                  id: newOptiune.id,
-                  fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
-                };
             } catch (error: any) {
                 // If link_fisier column doesn't exist, retry without it
                 if (error.message?.includes('link_fisier')) {
@@ -613,14 +539,6 @@ export function useSupabaseData() {
                     const { data: newOptiune, error: retryError } = await supabase.from('optiuni_extra').insert(dbOptiuneWithoutLink).select().single();
                     if (retryError) throw retryError;
                     console.warn('Saved without link_fisier - database column missing');
-                    
-                    // Reload data to get the updated vehicle with new option
-                    await loadData();
-                    
-                    return { 
-                      id: newOptiune.id,
-                      fisier: fisier_id ? { nume: (optiune as any).file?.name || 'file', dataUrl } : undefined
-                    };
                 } else {
                     throw error;
                 }
