@@ -35,11 +35,11 @@ export default function ModelsTab({
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({
     producator: '',
-  const [tempVehicleData, setTempVehicleData] = useState<any>(null);
     model: '',
     categorieId: '',
     perioadaFabricatie: ''
   });
+  const [tempVehicleData, setTempVehicleData] = useState<any>(null);
   const [fixingCategories, setFixingCategories] = useState(false);
 
   // Get unique producers for filter dropdown - filtered by selected category
