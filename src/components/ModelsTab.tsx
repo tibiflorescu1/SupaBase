@@ -140,7 +140,6 @@ export default function ModelsTab({
         nume: savedAcoperire.nume,
         pret: Number(savedAcoperire.pret),
         linkFisier: savedAcoperire.link_fisier || undefined,
-        fisier: savedAcoperire.fisier_id ? { nume: newAcoperire.file?.name || 'File', dataUrl: '' } : undefined
       };
       
       setEditingDetails(prev => {
@@ -150,7 +149,6 @@ export default function ModelsTab({
           acoperiri: [...prev.acoperiri, realAcoperire]
         };
       });
-      
       setNewAcoperire({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
@@ -185,7 +183,6 @@ export default function ModelsTab({
           optiuniExtra: [...prev.optiuniExtra, realOptiune]
         };
       });
-      
       setNewOptiune({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
