@@ -465,7 +465,6 @@ export function useSupabaseData() {
       }
   };
 
-  const saveOptiuneExtra = async (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }) => {
   const saveOptiuneExtra = async (optiune: Omit<OptiuneExtra, 'id'> & { id?: string, vehicul_id: string }, file?: File, shouldRefetch: boolean = true) => {
     try {
         let fisier_id = null;
@@ -560,15 +559,6 @@ export function useSupabaseData() {
     }
   };
 
-  const deleteOptiuneExtra = async (id: string) => {
-      try {
-          const { error } = await supabase.from('optiuni_extra').delete().eq('id', id);
-          if (error) throw error;
-      } catch (err) {
-          console.error('Error deleting extra option:', err);
-          throw err;
-      }
-  };
 
   const saveMaterialPrint = async (material: Omit<MaterialPrint, 'id'> & { id?: string }) => {
       try {
