@@ -41,6 +41,21 @@ export default function ModelsTab({
   });
   const [fixingCategories, setFixingCategories] = useState(false);
 
+  // Get unique producers for filter dropdown - filtered by selected category
+  const uniqueProducers = useMemo(() => {
+    const producers = selectedCategory === '' 
+      ? data.vehicule.map(v => v.producator).filter(Boolean)
+      : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator).filter(Boolean);
+    return [...new Set(producers)].filter(p => p && p.trim() !== '').sort();
+  }, [data.vehicule, selectedCategory]);
+
+  // Reset producer filter when category changes
+  useEffect(() => {
+    if (selectedCategory && selectedProducer && !uniqueProducers.includes(selectedProducer)) {
+      setSelectedProducer('');
+    }
+  }, [selectedCategory, selectedProducer, uniqueProducers]);
+
   const filteredVehicles = data.vehicule.filter(vehicle => {
     const searchMatch = searchTerm === '' || 
       (vehicle.producator && vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -50,17 +65,7 @@ export default function ModelsTab({
     const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
     
     return searchMatch && categoryMatch && producerMatch;
-  }).filter(vehicle =>
-    vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
-  ).filter(vehicle =>
-    selectedCategory === '' || vehicle.categorieId === selectedCategory
-  ).filter(vehicle =>
-    selectedProducer === '' || vehicle.producator === selectedProducer
-  );
-
-  // Get unique producers for filter dropdown
-  const uniqueProducers = [...new Set(data.vehicule.map(v => v.producator))].sort();
+  });
 
   // Get category name helper
   const getCategoryName = (categoryId: string) => {
