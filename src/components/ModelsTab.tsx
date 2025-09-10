@@ -127,18 +127,33 @@ export default function ModelsTab({
   };
 
   const handleAddAcoperire = async (vehicleId: string) => {
+    try {
+      const savedAcoperire = await onSaveAcoperire({
+        nume: newAcoperire.nume,
+        pret: newAcoperire.pret,
+        vehicul_id: vehicleId
+      });
+      
       // Add to local state with real ID from database
       const realAcoperire: Acoperire = {
         id: savedAcoperire.id,
         nume: savedAcoperire.nume,
         pret: Number(savedAcoperire.pret),
         linkFisier: savedAcoperire.link_fisier || undefined,
-      };
-      };
-        vehicul_id: vehicleId
+        fisier: savedAcoperire.fisier_id ? { nume: newAcoperire.file?.name || 'File', dataUrl: '' } : undefined
+        const realAcoperire = await onSaveAcoperire({
+          ...newAcoperire,
+          vehicul_id: vehicleId
+        });
+        
+        setTempVehicleData(prev => ({
+          ...prev,
+          acoperiri: [...prev.acoperiri, realAcoperire]
+        }));
+        
+        };
       });
       
-        acoperiri: [...prev.acoperiri, realAcoperire]
       setNewAcoperire({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
@@ -150,6 +165,13 @@ export default function ModelsTab({
   };
 
   const handleAddOptiune = async (vehicleId: string) => {
+    try {
+      const savedOptiune = await onSaveOptiuneExtra({
+        nume: newOptiune.nume,
+        pret: newOptiune.pret,
+        vehicul_id: vehicleId
+      });
+      
       // Add to local state with real ID from database
       const realOptiune: OptiuneExtra = {
         id: savedOptiune.id,
@@ -158,10 +180,15 @@ export default function ModelsTab({
         linkFisier: savedOptiune.link_fisier || undefined,
         fisier: savedOptiune.fisier_id ? { nume: newOptiune.file?.name || 'File', dataUrl: '' } : undefined
       };
-        vehicul_id: vehicleId
+      
+      setEditingDetails(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          optiuniExtra: [...prev.optiuniExtra, realOptiune]
+        };
       });
       
-        optiuniExtra: [...prev.optiuniExtra, realOptiune]
       setNewOptiune({ nume: '', pret: 0 });
       
       // Refresh data to show the new item
