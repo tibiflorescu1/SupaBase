@@ -91,10 +91,14 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <Database className="h-8 w-8 text-blue-600" />
+              <img 
+                src="https://images.pexels.com/photos/6476808/pexels-photo-6476808.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop" 
+                alt="Nicho Graphics Logo" 
+                className="h-8 w-8 rounded-full object-cover"
+              />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Vehicle Graphics Pricing
+                  Nicho Graphics - Vehicle Pricing
                 </h1>
                 <p className="text-sm text-gray-600">
                   Sistem de calculare prețuri pentru grafică vehicule
