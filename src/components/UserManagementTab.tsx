@@ -33,68 +33,38 @@ export default function UserManagementTab() {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Attempting to load users from user_profiles...');
+      console.log('🔍 Loading users from user_profiles...');
       
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('id, email, role, created_at, updated_at')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Database error:', error);
-        console.log('🔄 Falling back to mock users...');
-        
-        // Set mock users immediately on database error
-        setUsers([
-          {
-            id: 'mock-admin-1',
-            email: 'tibiflorescu@yahoo.com',
-            role: 'admin',
-            is_active: true,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'mock-admin-2', 
-            email: 'tibiflorescu@gmail.com',
-            role: 'admin',
-            is_active: true,
-            created_at: new Date().toISOString()
-          }
-        ]);
-        
-        setError(`Eroare bază de date: ${error.message}. Se folosesc utilizatori de test.`);
-        return; // Exit early with mock data
+        throw error;
       }
       
       console.log('✅ Users loaded:', data?.length || 0);
+      console.log('📋 User data:', data);
       
       if (data && data.length > 0) {
-        setUsers(data);
+        // Transform data to ensure is_active field exists
+        const transformedUsers = data.map(user => ({
+          ...user,
+          is_active: user.is_active !== undefined ? user.is_active : true
+        }));
+        setUsers(transformedUsers);
         setError(null);
       } else {
-        console.log('📝 No users found in database, using mock users');
-        setUsers([
-          {
-            id: 'mock-admin-1',
-            email: 'tibiflorescu@yahoo.com',
-            role: 'admin',
-            is_active: true,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'mock-admin-2', 
-            email: 'tibiflorescu@gmail.com',
-            role: 'admin',
-            is_active: true,
-            created_at: new Date().toISOString()
-          }
-        ]);
-        setError('Tabela user_profiles este goală. Se afișează utilizatori de test.');
+        console.log('📝 No users found in database');
+        setUsers([]);
+        setError('Nu s-au găsit utilizatori în baza de date.');
       }
     } catch (error: any) {
       console.error('Error loading users:', error);
-      console.log('🔄 Exception caught, using mock users...');
+      console.log('🔄 Falling back to mock users due to error...');
       
+      // Fallback to mock users only on error
       setUsers([
         {
           id: 'mock-admin-1',
@@ -112,7 +82,7 @@ export default function UserManagementTab() {
         }
       ]);
       
-      setError(`Excepție: ${error.message || 'Eroare necunoscută'}. Se folosesc utilizatori de test.`);
+      setError(`Eroare la încărcare: ${error.message || 'Eroare necunoscută'}. Se afișează utilizatori de test.`);
     } finally {
       setLoading(false);
     }
