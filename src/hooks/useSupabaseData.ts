@@ -189,10 +189,9 @@ export function useSupabaseData() {
       setError(null);
       
       console.log('🔍 Starting data load from Supabase...');
-      console.log('📊 Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Missing');
-      console.log('🔑 Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+      const startTime = performance.now();
 
-      // Fetch all data in parallel
+      // Fetch all data in parallel with optimized queries
       const [
         { data: categorii, error: categoriiError },
         { data: vehicule, error: vehiculeError },
@@ -201,17 +200,20 @@ export function useSupabaseData() {
         { data: materialePrint, error: materialePrintError },
         { data: materialeLaminare, error: materialeLaminareError },
         { data: setariPrintAlb, error: setariPrintAlbError },
-        { data: fisiere, error: fisiereError }
+        { data: fisiere, error: fisiereError },
       ] = await Promise.all([
-        supabase.from('categorii').select('*'),
-        supabase.from('vehicule').select('*'),
-        supabase.from('acoperiri').select('*'),
-        supabase.from('optiuni_extra').select('*'),
-        supabase.from('materiale_print').select('*'),
-        supabase.from('materiale_laminare').select('*'),
-        supabase.from('setari_print_alb').select('*'),
-        supabase.from('fisiere').select('*')
+        supabase.from('categorii').select('id, nume').order('nume'),
+        supabase.from('vehicule').select('id, producator, model, categorie_id, perioada_fabricatie').order('producator, model'),
+        supabase.from('acoperiri').select('id, vehicul_id, nume, pret, fisier_id, link_fisier').order('vehicul_id, nume'),
+        supabase.from('optiuni_extra').select('id, vehicul_id, nume, pret, fisier_id, link_fisier').order('vehicul_id, nume'),
+        supabase.from('materiale_print').select('id, nume, tip_calcul, valoare, permite_print_alb').order('nume'),
+        supabase.from('materiale_laminare').select('id, nume, tip_calcul, valoare').order('nume'),
+        supabase.from('setari_print_alb').select('id, tip_calcul, valoare').limit(1),
+        supabase.from('fisiere').select('id, nume, data_url').limit(1000), // Limit files to prevent huge loads
       ]);
+
+      const loadTime = performance.now() - startTime;
+      console.log(`⚡ Data loaded in ${loadTime.toFixed(2)}ms`);
 
       // Check for errors
       const errors = [
@@ -221,26 +223,15 @@ export function useSupabaseData() {
 
       if (errors.length > 0) {
         console.error('❌ Database errors:', errors);
-        // Don't throw immediately, try to work with partial data
         setError(`Erori parțiale: ${errors.map(e => e?.message).join(', ')}`);
       }
-
-      // Debug logging
-      console.log('📊 Raw data from database:');
-      console.log('- Categorii:', categorii?.length || 0);
-      console.log('- Vehicule:', vehicule?.length || 0);
-      console.log('- Acoperiri:', acoperiri?.length || 0);
-      console.log('- Optiuni:', optiuni?.length || 0);
-      console.log('- Materiale print:', materialePrint?.length || 0);
-      console.log('- Materiale laminare:', materialeLaminare?.length || 0);
-      console.log('- Setari print alb:', setariPrintAlb?.length || 0);
-      console.log('- Fisiere:', fisiere?.length || 0);
 
       // If we have no data at all, something is wrong
       if (!categorii && !vehicule && !acoperiri && !optiuni && !materialePrint && !materialeLaminare) {
         throw new Error('Nu s-au putut încărca datele din baza de date. Verifică conexiunea.');
       }
 
+      const transformStart = performance.now();
       // Transform and set data
       const transformedData = await transformData(
         categorii || [],
@@ -252,32 +243,11 @@ export function useSupabaseData() {
         setariPrintAlb || [],
         fisiere || []
       );
+      const transformTime = performance.now() - transformStart;
 
-      console.log('✅ Transformed data:');
-      console.log('- Final vehicule count:', transformedData.vehicule.length);
-      console.log('- Categorii count:', transformedData.categorii.length);
+      console.log(`🔄 Data transformed in ${transformTime.toFixed(2)}ms`);
+      console.log(`📊 Loaded: ${transformedData.vehicule.length} vehicule, ${transformedData.categorii.length} categorii`);
       
-      // Check for duplicates
-      const vehiculeMap = new Map();
-      const duplicates = [];
-      transformedData.vehicule.forEach(v => {
-        const key = `${v.producator}_${v.model}`;
-        if (vehiculeMap.has(key)) {
-          duplicates.push({
-            key,
-            existing: vehiculeMap.get(key),
-            duplicate: v
-          });
-        } else {
-          vehiculeMap.set(key, v);
-        }
-      });
-      
-      if (duplicates.length > 0) {
-        console.warn('⚠️ Found duplicate vehicles:', duplicates);
-      }
-      
-      console.log('🎯 Unique vehicles by name:', vehiculeMap.size);
       setData(transformedData);
     } catch (err) {
       console.error('Error loading data from Supabase:', err);
@@ -294,7 +264,7 @@ export function useSupabaseData() {
       });
     } finally {
       setLoading(false);
-      console.log('✅ Data loading completed');
+      console.log('✅ Data loading completed successfully');
     }
   };
 
