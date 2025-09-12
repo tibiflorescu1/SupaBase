@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, X, Settings } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
 import type { AppData, MaterialPrint, MaterialLaminare, SetariPrintAlb } from '../hooks/useSupabaseData';
 
 interface MaterialsTabProps {
@@ -20,7 +19,6 @@ export default function MaterialsTab({
   onDeleteMaterialLaminare,
   onSaveSetariPrintAlb 
 }: MaterialsTabProps) {
-  const { canEdit, canDelete } = useAuth();
   const [activeTab, setActiveTab] = useState<'print' | 'laminare' | 'setari'>('print');
   const [editingPrint, setEditingPrint] = useState<MaterialPrint | null>(null);
   const [editingLaminare, setEditingLaminare] = useState<MaterialLaminare | null>(null);
@@ -147,24 +145,22 @@ export default function MaterialsTab({
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Materiale de Print</h3>
-            {canEdit() && (
-              <button
-                onClick={() => {
-                  setEditingPrint({
-                    id: '',
-                    nume: '',
-                    tipCalcul: 'procentual',
-                    valoare: 0,
-                    permitePrintAlb: false
-                  });
-                  setIsAddingPrint(true);
-                }}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adaugă Material Print
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setEditingPrint({
+                  id: '',
+                  nume: '',
+                  tipCalcul: 'procentual',
+                  valoare: 0,
+                  permitePrintAlb: false
+                });
+                setIsAddingPrint(true);
+              }}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adaugă Material Print
+            </button>
           </div>
 
           {(editingPrint || isAddingPrint) && (
@@ -292,24 +288,20 @@ export default function MaterialsTab({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {canEdit() && (
-                          <button
-                            onClick={() => setEditingPrint(material)}
-                            className="p-2 text-indigo-600 hover:text-indigo-800"
-                            disabled={saving}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        {canDelete() && (
-                          <button
-                            onClick={() => handleDeletePrint(material.id)}
-                            className="p-2 text-red-600 hover:text-red-800"
-                            disabled={saving}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setEditingPrint(material)}
+                          className="p-2 text-indigo-600 hover:text-indigo-800"
+                          disabled={saving}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePrint(material.id)}
+                          className="p-2 text-red-600 hover:text-red-800"
+                          disabled={saving}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -324,23 +316,21 @@ export default function MaterialsTab({
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Materiale de Laminare</h3>
-            {canEdit() && (
-              <button
-                onClick={() => {
-                  setEditingLaminare({
-                    id: '',
-                    nume: '',
-                    tipCalcul: 'procentual',
-                    valoare: 0
-                  });
-                  setIsAddingLaminare(true);
-                }}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adaugă Material Laminare
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setEditingLaminare({
+                  id: '',
+                  nume: '',
+                  tipCalcul: 'procentual',
+                  valoare: 0
+                });
+                setIsAddingLaminare(true);
+              }}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adaugă Material Laminare
+            </button>
           </div>
 
           {(editingLaminare || isAddingLaminare) && (
@@ -450,24 +440,20 @@ export default function MaterialsTab({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {canEdit() && (
-                          <button
-                            onClick={() => setEditingLaminare(material)}
-                            className="p-2 text-indigo-600 hover:text-indigo-800"
-                            disabled={saving}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        {canDelete() && (
-                          <button
-                            onClick={() => handleDeleteLaminare(material.id)}
-                            className="p-2 text-red-600 hover:text-red-800"
-                            disabled={saving}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setEditingLaminare(material)}
+                          className="p-2 text-indigo-600 hover:text-indigo-800"
+                          disabled={saving}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLaminare(material.id)}
+                          className="p-2 text-red-600 hover:text-red-800"
+                          disabled={saving}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -482,15 +468,13 @@ export default function MaterialsTab({
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Setări Print Alb</h3>
-            {canEdit() && (
-              <button
-                onClick={() => setEditingSetari(data.setariPrintAlb)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Editează Setări
-              </button>
-            )}
+            <button
+              onClick={() => setEditingSetari(data.setariPrintAlb)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Editează Setări
+            </button>
           </div>
 
           {editingSetari && (

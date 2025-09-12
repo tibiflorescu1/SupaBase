@@ -1,28 +1,18 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle, User } from 'lucide-react';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
-import { useAuth } from './hooks/useAuth';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
 import MaterialsTab from './components/MaterialsTab';
 import CalculatorTab from './components/CalculatorTab';
 import ImportExportTab from './components/ImportExportTab';
-import UserManagementTab from './components/UserManagementTab';
 import DatabaseStatus from './components/DatabaseStatus';
 
-type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'users';
+type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
   const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
-  
-  const { 
-    user, 
-    profile, 
-    loading: authLoading, 
-    isAdmin, 
-    canEdit 
-  } = useAuth();
   
   const {
     data,
@@ -44,15 +34,13 @@ export default function App() {
     saveSetariPrintAlb
   } = useSupabaseData();
 
-  if (loading || authLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Se încarcă aplicația...</p>
-          <p className="text-sm text-gray-500 mt-2">
-            {authLoading ? 'Verificare autentificare...' : 'Încărcare date...'}
-          </p>
+          <p className="text-sm text-gray-500 mt-2">Încărcare date...</p>
         </div>
       </div>
     );
@@ -77,18 +65,12 @@ export default function App() {
     );
   }
 
-  // Filter tabs based on user permissions
   const tabs = [
     { id: 'calculator' as Tab, name: 'Calculator', icon: Calculator },
-    ...(canEdit() ? [
-      { id: 'models' as Tab, name: 'Modele', icon: Car },
-      { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
-      { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
-      { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
-    ] : []),
-    ...(isAdmin() ? [
-      { id: 'users' as Tab, name: 'Utilizatori', icon: Users },
-    ] : [])
+    { id: 'models' as Tab, name: 'Modele', icon: Car },
+    { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
+    { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
+    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet }
   ];
 
   return (
@@ -109,28 +91,8 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center space-x-6">
-              {/* User Info */}
-              {user && profile && (
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="text-sm">
-                    <div className="font-medium text-gray-900">
-                      {profile.full_name || 'Utilizator'}
-                    </div>
-                    <div className="text-gray-500 capitalize">
-                      {profile.role || 'admin'}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
               {/* Stats */}
               <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  ADMIN (TEST MODE)
-                </span>
                 <span>Vehicule total: {data.vehicule.length}</span>
                 <span>Unice (nume): {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
                 <span>Categorii: {data.categorii.length}</span>
@@ -208,8 +170,6 @@ export default function App() {
             onRefetch={refetch}
           />
         )}
-        
-        {activeTab === 'users' && <UserManagementTab />}
       </main>
 
       {/* Database Status Modal */}
