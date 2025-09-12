@@ -75,13 +75,8 @@ export default function UserManagementTab() {
       console.log('✅ Users loaded:', data?.length || 0);
       
       if (data && data.length > 0) {
-        // Transform data to ensure is_active field exists
-        const transformedUsers = data.map(user => ({
-          ...user,
-          is_active: user.is_active !== undefined ? user.is_active : true
-        }));
-        console.log('✅ Transformed users:', transformedUsers);
-        setUsers(transformedUsers);
+        console.log('✅ Setting users data:', data);
+        setUsers(data);
         setError(null); // Clear any previous errors
       } else {
         console.log('📝 No users found in database');
@@ -335,12 +330,12 @@ export default function UserManagementTab() {
                     )}
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {user.email.split('@')[0]}
+                        {user.email ? user.email.split('@')[0] : 'Utilizator necunoscut'}
                         {user.id === currentUser?.id && (
                           <span className="ml-2 text-xs text-blue-600">(Tu)</span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="text-sm text-gray-500">{user.email || 'Email necunoscut'}</div>
                     </div>
                   </div>
                 </td>
@@ -354,11 +349,11 @@ export default function UserManagementTab() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    user.is_active 
+                    user.is_active !== false
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {user.is_active ? 'Activ' : 'Inactiv'}
+                    {user.is_active !== false ? 'Activ' : 'Inactiv'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -380,16 +375,16 @@ export default function UserManagementTab() {
 
                     {/* Toggle Status Button */}
                     <button
-                      onClick={() => toggleUserStatus(user.id, user.is_active)}
+                      onClick={() => toggleUserStatus(user.id, user.is_active !== false)}
                       disabled={saving || user.id === currentUser?.id || error !== null}
                       className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        user.is_active
+                        user.is_active !== false
                           ? 'text-red-600 hover:text-red-800 hover:bg-red-50'
                           : 'text-green-600 hover:text-green-800 hover:bg-green-50'
                       }`}
-                      title={user.is_active ? 'Dezactivează utilizator' : 'Activează utilizator'}
+                      title={user.is_active !== false ? 'Dezactivează utilizator' : 'Activează utilizator'}
                     >
-                      {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                      {user.is_active !== false ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                     </button>
                   </div>
                 </td>
