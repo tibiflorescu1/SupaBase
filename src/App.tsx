@@ -48,15 +48,28 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong className="font-bold">Eroare de conexiune!</strong>
-            <span className="block sm:inline"> {error}</span>
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+            <strong className="font-bold">Problemă de configurare!</strong>
+            <div className="mt-2 text-sm">
+              <p>{error}</p>
+              <p className="mt-2">Verifică că variabilele de mediu sunt setate corect:</p>
+              <ul className="list-disc list-inside mt-1">
+                <li>VITE_SUPABASE_URL</li>
+                <li>VITE_SUPABASE_ANON_KEY</li>
+              </ul>
+            </div>
           </div>
           <button
             onClick={refetch}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
           >
             Încearcă din nou
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Reîncarcă pagina
           </button>
         </div>
       </div>

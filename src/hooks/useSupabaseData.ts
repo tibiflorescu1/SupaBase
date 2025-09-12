@@ -185,6 +185,14 @@ export function useSupabaseData() {
   // Load data from Supabase
   const loadData = async () => {
     try {
+      // Check if Supabase is configured
+      if (!supabase) {
+        console.error('Supabase not configured - missing environment variables');
+        setError('Configurare Supabase lipsește. Verifică variabilele de mediu.');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       

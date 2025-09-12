@@ -19,6 +19,12 @@ export default function DatabaseStatus({ onClose }: DatabaseStatusProps) {
 
   const runDatabaseTests = async () => {
     try {
+      if (!supabase) {
+        setError('Supabase nu este configurat - lipsesc variabilele de mediu');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       const testResults: DatabaseTest[] = [];
