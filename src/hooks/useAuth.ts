@@ -70,10 +70,14 @@ export function useAuth() {
 
   const updateLastLogin = async (userId: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('user_profiles')
         .update({ last_login: new Date().toISOString() })
         .eq('id', userId);
+      
+      if (error) {
+        console.error('Error updating last login:', error);
+      }
     } catch (error) {
       console.error('Error updating last login:', error);
     }
