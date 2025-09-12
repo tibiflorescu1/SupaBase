@@ -8,15 +8,16 @@ console.log('- URL exists:', !!supabaseUrl);
 console.log('- Key exists:', !!supabaseAnonKey);
 console.log('- URL value:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING');
 
-if (!supabaseUrl) {
-  console.error('❌ Missing VITE_SUPABASE_URL environment variable');
-  throw new Error('Missing Supabase URL environment variable');
-}
-if (!supabaseAnonKey) {
-  console.error('❌ Missing VITE_SUPABASE_ANON_KEY environment variable');
-  throw new Error('Missing Supabase anon key environment variable');
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Missing Supabase environment variables');
+  console.error('Creating placeholder client - app will show connection errors');
 }
 
+// Create client even with missing env vars to prevent import errors
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
+);
 
 // Auth types
 export interface UserProfile {
