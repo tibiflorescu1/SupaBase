@@ -2,34 +2,76 @@ import React, { useState, useEffect } from 'react';
 import { Users, Shield, Edit2, Trash2, UserCheck, UserX, Crown, Briefcase, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import type { UserProfile } from '../lib/supabase';
+
+// Simplified UserProfile interface for this component
+interface SimpleUserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  role: 'admin' | 'editor' | 'viewer';
+  created_at?: string;
+  updated_at?: string;
+  is_active: boolean;
+}
 
 export default function UserManagementTab() {
   const { profile: currentUser, isAdmin } = useAuth();
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<SimpleUserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAdmin()) {
       loadUsers();
+    } else {
+      setLoading(false);
     }
   }, [isAdmin]);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      console.log('🔍 Loading users from user_profiles...');
+      
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('id, email, full_name, avatar_url, role, created_at, updated_at, is_active')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error loading users:', error);
+        throw error;
+      }
+      
+      console.log('✅ Users loaded:', data?.length || 0);
       setUsers(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading users:', error);
-      alert('Eroare la încărcarea utilizatorilor');
+      setError(error.message || 'Eroare la încărcarea utilizatorilor');
+      
+      // Fallback: show mock users if database fails
+      setUsers([
+        {
+          id: 'mock-admin-1',
+          email: 'tibiflorescu@yahoo.com',
+          full_name: 'Tibi Florescu',
+          role: 'admin',
+          is_active: true,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'mock-admin-2', 
+          email: 'tibiflorescu@gmail.com',
+          full_name: 'Tibi Florescu (Gmail)',
+          role: 'admin',
+          is_active: true,
+          created_at: new Date().toISOString()
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -48,6 +90,7 @@ export default function UserManagementTab() {
 
     try {
       setSaving(true);
+      
       const { error } = await supabase
         .from('user_profiles')
         .update({ 
@@ -60,9 +103,9 @@ export default function UserManagementTab() {
       
       await loadUsers();
       alert(`Rolul utilizatorului a fost actualizat la ${newRole}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user role:', error);
-      alert('Eroare la actualizarea rolului');
+      alert('Eroare la actualizarea rolului: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -81,6 +124,7 @@ export default function UserManagementTab() {
 
     try {
       setSaving(true);
+      
       const { error } = await supabase
         .from('user_profiles')
         .update({ 
@@ -93,9 +137,9 @@ export default function UserManagementTab() {
       
       await loadUsers();
       alert(`Utilizatorul a fost ${!isActive ? 'activat' : 'dezactivat'}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user status:', error);
-      alert('Eroare la actualizarea statusului');
+      alert('Eroare la actualizarea statusului: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -119,14 +163,19 @@ export default function UserManagementTab() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ro-RO', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleDateString('ro-RO', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '-';
+    }
   };
 
   if (!isAdmin()) {
@@ -162,8 +211,29 @@ export default function UserManagementTab() {
         <div className="flex items-center space-x-4 text-sm text-gray-600">
           <span>Total utilizatori: {users.length}</span>
           <span>Activi: {users.filter(u => u.is_active).length}</span>
+          {error && (
+            <button
+              onClick={loadUsers}
+              className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs"
+            >
+              Reîncarcă
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <Shield className="w-5 h-5 text-yellow-600 mr-2" />
+            <span className="text-yellow-800 font-medium">Avertisment:</span>
+          </div>
+          <p className="text-yellow-700 mt-1 text-sm">
+            {error} - Se afișează utilizatori mock pentru demonstrație.
+          </p>
+        </div>
+      )}
 
       {/* Role Explanation */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -260,7 +330,7 @@ export default function UserManagementTab() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {user.created_at ? formatDate(user.created_at) : '-'}
+                  {formatDate(user.created_at)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
@@ -268,7 +338,7 @@ export default function UserManagementTab() {
                     <select
                       value={user.role}
                       onChange={(e) => updateUserRole(user.id, e.target.value as 'admin' | 'editor' | 'viewer')}
-                      disabled={saving || user.id === currentUser?.id}
+                      disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-')}
                       className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                     >
                       <option value="viewer">Viewer</option>
@@ -279,7 +349,7 @@ export default function UserManagementTab() {
                     {/* Toggle Status Button */}
                     <button
                       onClick={() => toggleUserStatus(user.id, user.is_active)}
-                      disabled={saving || user.id === currentUser?.id}
+                      disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-')}
                       className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         user.is_active
                           ? 'text-red-600 hover:text-red-800 hover:bg-red-50'
@@ -297,7 +367,7 @@ export default function UserManagementTab() {
         </table>
       </div>
 
-      {users.length === 0 && (
+      {users.length === 0 && !loading && (
         <div className="text-center py-12">
           <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Nu există utilizatori</h3>
