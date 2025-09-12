@@ -86,6 +86,7 @@ export function useSupabaseData() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetch, setLastFetch] = useState(0);
 
   // Transform database data to app format
   const transformData = async (
@@ -98,6 +99,7 @@ export function useSupabaseData() {
     setariPrintAlb: DatabaseSetariPrintAlb[],
     fisiere: DatabaseFisier[]
   ): Promise<AppData> => {
+    const transformStart = performance.now();
     // Create file lookup
     const fileMap = new Map<string, Fisier>();
     fisiere.forEach(f => {
@@ -146,6 +148,7 @@ export function useSupabaseData() {
           pret: Number(o.pret),
           fisier: o.fisier_id ? fileMap.get(o.fisier_id) : undefined,
           linkFisier: o.link_fisier || undefined
+        }));
 
       console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) optiuni:`, vehiculOptiuni);
       return {
@@ -155,7 +158,9 @@ export function useSupabaseData() {
         categorieId: v.categorie_id,
         perioadaFabricatie: v.perioada_fabricatie,
         acoperiri: vehiculAcoperiri,
-      const vehiculOptiuni = (optiuniByVehicle.get(v.id) || [])
+        optiuniExtra: vehiculOptiuni
+      };
+    });
 
     // Transform print materials
     const transformedMaterialePrint: MaterialPrint[] = materialePrint.map(m => ({
@@ -192,10 +197,10 @@ export function useSupabaseData() {
       materialeLaminare: transformedMaterialeLaminare,
       setariPrintAlb: transformedSetariPrintAlb
     };
-  }, []);
+  };
 
   // Load data from Supabase
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     // Prevent multiple simultaneous requests
     const now = Date.now();
     if (now - lastFetch < 1000) {
@@ -298,7 +303,7 @@ export function useSupabaseData() {
       setLoading(false);
       console.log('✅ Data loading completed');
     }
-  }, [transformData, lastFetch]);
+  };
 
   // Save functions for updating data
   const saveCategorie = async (categorie: Omit<Categorie, 'id'> & { id?: string }) => {
@@ -741,7 +746,7 @@ export function useSupabaseData() {
   // Load data on mount
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, []);
 
   return {
     data,
