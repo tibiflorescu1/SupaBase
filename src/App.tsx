@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle } from 'lucide-react';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle, LogIn, LogOut, User } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
+import { useAuth } from './hooks/useAuth';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
 import MaterialsTab from './components/MaterialsTab';
 import CalculatorTab from './components/CalculatorTab';
 import ImportExportTab from './components/ImportExportTab';
+import UserManagementTab from './components/UserManagementTab';
 import DatabaseStatus from './components/DatabaseStatus';
+import AuthModal from './components/AuthModal';
 
 type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'users';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
   const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  
+  const { 
+    user, 
+    profile, 
+    loading: authLoading, 
+    signOut, 
+    hasPermission, 
+    isAdmin, 
+    canEdit 
+  } = useAuth();
+  
   const {
     data,
     loading,
@@ -33,12 +48,12 @@ export default function App() {
     saveSetariPrintAlb
   } = useSupabaseData();
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Se încarcă datele...</p>
+          <p className="text-gray-600">Se încarcă...</p>
         </div>
       </div>
     );
@@ -63,13 +78,28 @@ export default function App() {
     );
   }
 
+  // Filter tabs based on user permissions
   const tabs = [
     { id: 'calculator' as Tab, name: 'Calculator', icon: Calculator },
-    { id: 'models' as Tab, name: 'Modele', icon: Car },
-    { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
-    { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
-    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
+    ...(canEdit() ? [
+      { id: 'models' as Tab, name: 'Modele', icon: Car },
+      { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
+      { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
+      { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
+    ] : []),
+    ...(isAdmin() ? [
+      { id: 'users' as Tab, name: 'Utilizatori', icon: Users },
+    ] : [])
   ];
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setActiveTab('calculator');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -89,12 +119,40 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center space-x-6">
+              {/* User Info */}
+              {user && profile && (
+                <div className="flex items-center space-x-3">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.full_name || profile.email}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                  )}
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900">
+                      {profile.full_name || 'Utilizator'}
+                    </div>
+                    <div className="text-gray-500 capitalize">
+                      {profile.role}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Stats */}
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <span>Vehicule total: {data.vehicule.length}</span>
                 <span>Unice (nume): {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
                 <span>Categorii: {data.categorii.length}</span>
                 <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
               </div>
+              
+              {/* Action Buttons */}
               <button
                 onClick={() => setShowDatabaseStatus(true)}
                 className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
@@ -102,6 +160,25 @@ export default function App() {
                 <AlertTriangle className="w-4 h-4" />
                 <span>Verifică DB</span>
               </button>
+              
+              {/* Auth Button */}
+              {user ? (
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Deconectare</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Conectare</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -165,12 +242,20 @@ export default function App() {
             onRefetch={refetch}
           />
         )}
+        
+        {activeTab === 'users' && <UserManagementTab />}
       </main>
 
       {/* Database Status Modal */}
       {showDatabaseStatus && (
         <DatabaseStatus onClose={() => setShowDatabaseStatus(false)} />
       )}
+      
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 }

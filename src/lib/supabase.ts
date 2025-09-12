@@ -12,6 +12,19 @@ if (!supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Auth types
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  role: 'admin' | 'editor' | 'viewer';
+  created_at?: string;
+  updated_at?: string;
+  last_login?: string;
+  is_active: boolean;
+}
+
 // Database types  
 export interface DatabaseCategorie {
   id: string;

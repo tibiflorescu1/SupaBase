@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import type { AppData, Categorie } from '../hooks/useSupabaseData';
 
 interface CategoriesTabProps {
@@ -10,6 +11,7 @@ interface CategoriesTabProps {
 }
 
 export default function CategoriesTab({ data, onSaveCategorie, onDeleteCategorie }: CategoriesTabProps) {
+  const { canEdit, canDelete } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [newCategory, setNewCategory] = useState('');
@@ -66,13 +68,15 @@ export default function CategoriesTab({ data, onSaveCategorie, onDeleteCategorie
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-800">Categorii Vehicule</h2>
-        <button
-          onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4" />
-          Adaugă Categorie
-        </button>
+        {canEdit() && (
+          <button
+            onClick={() => setIsAdding(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+            Adaugă Categorie
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow">
@@ -158,22 +162,26 @@ export default function CategoriesTab({ data, onSaveCategorie, onDeleteCategorie
                       </div>
                     ) : (
                       <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => {
-                            setEditingId(category.id);
-                            setEditingName(category.nume);
-                          }}
-                          className="p-1 text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(category.id)}
-                          className="p-1 text-red-600 hover:text-red-800"
-                          disabled={saving}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canEdit() && (
+                          <button
+                            onClick={() => {
+                              setEditingId(category.id);
+                              setEditingName(category.nume);
+                            }}
+                            className="p-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete() && (
+                          <button
+                            onClick={() => handleDelete(category.id)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                            disabled={saving}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
