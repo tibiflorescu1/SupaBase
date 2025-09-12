@@ -3,20 +3,32 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('🔧 Supabase configuration check:');
-console.log('- URL exists:', !!supabaseUrl);
-console.log('- Key exists:', !!supabaseAnonKey);
-console.log('- URL value:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING');
-
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase environment variables');
-  console.error('Creating placeholder client - app will show connection errors');
 }
 
 // Create client even with missing env vars to prevent import errors
-export const supabase = createClient(
+export const supabase = createClient( 
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseAnonKey || 'placeholder-key',
+  {
+    db: {
+      schema: 'public',
+    },
+    auth: {
+      persistSession: false, // Disable auth session persistence
+    },
+    global: {
+      headers: {
+        'x-client-info': 'vehicle-graphics-app@1.0.0',
+      },
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 2, // Limit realtime events
+      },
+    },
+  }
 );
 
 // Auth types

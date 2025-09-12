@@ -104,19 +104,33 @@ export function useSupabaseData() {
       fileMap.set(f.id, { nume: f.nume, dataUrl: f.data_url });
     });
 
-    console.log('Files loaded:', fisiere.length);
-    console.log('File map:', fileMap);
     // Transform categories
     const transformedCategorii: Categorie[] = categorii.map(c => ({
       id: c.id,
       nume: c.nume
     }));
 
+    // Create lookup maps for better performance
+    const acopeririByVehicle = new Map<string, DatabaseAcoperire[]>();
+    const optiuniByVehicle = new Map<string, DatabaseOptiuneExtra[]>();
+    
+    acoperiri.forEach(a => {
+      if (!acopeririByVehicle.has(a.vehicul_id)) {
+        acopeririByVehicle.set(a.vehicul_id, []);
+      }
+      acopeririByVehicle.get(a.vehicul_id)!.push(a);
+    });
+    
+    optiuni.forEach(o => {
+      if (!optiuniByVehicle.has(o.vehicul_id)) {
+        optiuniByVehicle.set(o.vehicul_id, []);
+      }
+      optiuniByVehicle.get(o.vehicul_id)!.push(o);
+    });
+
     // Transform vehicles with their coverage and extra options
     const transformedVehicule: Vehicul[] = vehicule.map(v => {
-      
-      const vehiculAcoperiri = acoperiri
-        .filter(a => a.vehicul_id === v.id)
+      const vehiculAcoperiri = (acopeririByVehicle.get(v.id) || [])
         .map(a => ({
           id: a.id,
           nume: a.nume,
@@ -125,16 +139,13 @@ export function useSupabaseData() {
           linkFisier: a.link_fisier || undefined
         }));
 
-      console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) acoperiri:`, vehiculAcoperiri);
-      const vehiculOptiuni = optiuni
-        .filter(o => o.vehicul_id === v.id)
+      const vehiculOptiuni = (optiuniByVehicle.get(v.id) || [])
         .map(o => ({
           id: o.id,
           nume: o.nume,
           pret: Number(o.pret),
           fisier: o.fisier_id ? fileMap.get(o.fisier_id) : undefined,
           linkFisier: o.link_fisier || undefined
-        }));
 
       console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) optiuni:`, vehiculOptiuni);
       return {
@@ -144,9 +155,7 @@ export function useSupabaseData() {
         categorieId: v.categorie_id,
         perioadaFabricatie: v.perioada_fabricatie,
         acoperiri: vehiculAcoperiri,
-        optiuniExtra: vehiculOptiuni
-      };
-    });
+      const vehiculOptiuni = (optiuniByVehicle.get(v.id) || [])
 
     // Transform print materials
     const transformedMaterialePrint: MaterialPrint[] = materialePrint.map(m => ({
@@ -173,6 +182,9 @@ export function useSupabaseData() {
         }
       : { tipCalcul: 'procentual', valoare: 35 };
 
+    const transformTime = performance.now() - transformStart;
+    console.log(`✅ Data transformed in ${transformTime.toFixed(2)}ms`);
+
     return {
       vehicule: transformedVehicule,
       categorii: transformedCategorii,
@@ -180,10 +192,18 @@ export function useSupabaseData() {
       materialeLaminare: transformedMaterialeLaminare,
       setariPrintAlb: transformedSetariPrintAlb
     };
-  };
+  }, []);
 
   // Load data from Supabase
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    // Prevent multiple simultaneous requests
+    const now = Date.now();
+    if (now - lastFetch < 1000) {
+      console.log('⏳ Skipping fetch - too recent');
+      return;
+    }
+    setLastFetch(now);
+
     try {
       setLoading(true);
       setError(null);
@@ -191,29 +211,43 @@ export function useSupabaseData() {
       console.log('🔍 Starting data load from Supabase...');
       const startTime = performance.now();
 
-      // Fetch all data in parallel with optimized queries
+      // Fetch data in optimized batches
+      const [
+        basicDataResults,
+        vehicleDataResults
+      ] = await Promise.all([
+        // Basic data (fast)
+        Promise.all([
+          supabase.from('categorii').select('id, nume').order('nume'),
+          supabase.from('materiale_print').select('id, nume, tip_calcul, valoare, permite_print_alb').order('nume'),
+          supabase.from('materiale_laminare').select('id, nume, tip_calcul, valoare').order('nume'),
+          supabase.from('setari_print_alb').select('id, tip_calcul, valoare').limit(1)
+        ]),
+        // Vehicle data (potentially slower)
+        Promise.all([
+          supabase.from('vehicule').select('id, producator, model, categorie_id, perioada_fabricatie').order('producator, model'),
+          supabase.from('acoperiri').select('id, vehicul_id, nume, pret, fisier_id, link_fisier').order('vehicul_id, nume'),
+          supabase.from('optiuni_extra').select('id, vehicul_id, nume, pret, fisier_id, link_fisier').order('vehicul_id, nume'),
+          supabase.from('fisiere').select('id, nume, data_url').limit(500) // Reduced limit
+        ])
+      ]);
+
       const [
         { data: categorii, error: categoriiError },
+        { data: materialePrint, error: materialePrintError },
+        { data: materialeLaminare, error: materialeLaminareError },
+        { data: setariPrintAlb, error: setariPrintAlbError }
+      ] = basicDataResults;
+
+      const [
         { data: vehicule, error: vehiculeError },
         { data: acoperiri, error: acopeririError },
         { data: optiuni, error: optiuniError },
-        { data: materialePrint, error: materialePrintError },
-        { data: materialeLaminare, error: materialeLaminareError },
-        { data: setariPrintAlb, error: setariPrintAlbError },
-        { data: fisiere, error: fisiereError },
-      ] = await Promise.all([
-        supabase.from('categorii').select('id, nume').order('nume'),
-        supabase.from('vehicule').select('id, producator, model, categorie_id, perioada_fabricatie').order('producator, model'),
-        supabase.from('acoperiri').select('id, vehicul_id, nume, pret, fisier_id, link_fisier').order('vehicul_id, nume'),
-        supabase.from('optiuni_extra').select('id, vehicul_id, nume, pret, fisier_id, link_fisier').order('vehicul_id, nume'),
-        supabase.from('materiale_print').select('id, nume, tip_calcul, valoare, permite_print_alb').order('nume'),
-        supabase.from('materiale_laminare').select('id, nume, tip_calcul, valoare').order('nume'),
-        supabase.from('setari_print_alb').select('id, tip_calcul, valoare').limit(1),
-        supabase.from('fisiere').select('id, nume, data_url').limit(1000), // Limit files to prevent huge loads
-      ]);
+        { data: fisiere, error: fisiereError }
+      ] = vehicleDataResults;
 
       const loadTime = performance.now() - startTime;
-      console.log(`⚡ Data loaded in ${loadTime.toFixed(2)}ms`);
+      console.log(`⚡ All data loaded in ${loadTime.toFixed(2)}ms`);
 
       // Check for errors
       const errors = [
@@ -223,7 +257,8 @@ export function useSupabaseData() {
 
       if (errors.length > 0) {
         console.error('❌ Database errors:', errors);
-        setError(`Erori parțiale: ${errors.map(e => e?.message).join(', ')}`);
+        // Don't show partial errors to user unless critical
+        console.warn('Some data may be incomplete due to errors');
       }
 
       // If we have no data at all, something is wrong
@@ -231,7 +266,6 @@ export function useSupabaseData() {
         throw new Error('Nu s-au putut încărca datele din baza de date. Verifică conexiunea.');
       }
 
-      const transformStart = performance.now();
       // Transform and set data
       const transformedData = await transformData(
         categorii || [],
@@ -243,9 +277,7 @@ export function useSupabaseData() {
         setariPrintAlb || [],
         fisiere || []
       );
-      const transformTime = performance.now() - transformStart;
 
-      console.log(`🔄 Data transformed in ${transformTime.toFixed(2)}ms`);
       console.log(`📊 Loaded: ${transformedData.vehicule.length} vehicule, ${transformedData.categorii.length} categorii`);
       
       setData(transformedData);
@@ -264,9 +296,9 @@ export function useSupabaseData() {
       });
     } finally {
       setLoading(false);
-      console.log('✅ Data loading completed successfully');
+      console.log('✅ Data loading completed');
     }
-  };
+  }, [transformData, lastFetch]);
 
   // Save functions for updating data
   const saveCategorie = async (categorie: Omit<Categorie, 'id'> & { id?: string }) => {
@@ -285,7 +317,18 @@ export function useSupabaseData() {
           .insert({ nume: categorie.nume });
         if (error) throw error;
       }
-      await loadData(); // Reload data
+      // Optimistic update instead of full reload
+      if (categorie.id) {
+        setData(prev => ({
+          ...prev,
+          categorii: prev.categorii.map(c => 
+            c.id === categorie.id ? { ...c, nume: categorie.nume } : c
+          )
+        }));
+      } else {
+        // For new categories, we need to reload to get the ID
+        setTimeout(() => loadData(), 100);
+      }
     } catch (err) {
       console.error('Error saving category:', err);
       throw err;
@@ -299,7 +342,11 @@ export function useSupabaseData() {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      await loadData(); // Reload data
+      // Optimistic update
+      setData(prev => ({
+        ...prev,
+        categorii: prev.categorii.filter(c => c.id !== id)
+      }));
     } catch (err) {
       console.error('Error deleting category:', err);
       throw err;
@@ -330,7 +377,7 @@ export function useSupabaseData() {
           .insert(dbVehicul);
         if (error) throw error;
       }
-      // Nu mai facem loadData() automat - doar la cerere
+      // Don't auto-reload - only on demand
     } catch (err) {
       console.error('Error saving vehicle:', err);
       throw err;
@@ -344,7 +391,7 @@ export function useSupabaseData() {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      // Nu mai facem loadData() automat - doar la cerere
+      // Don't auto-reload - only on demand
     } catch (err) {
       console.error('Error deleting vehicle:', err);
       throw err;
@@ -583,7 +630,17 @@ export function useSupabaseData() {
               const { error } = await supabase.from('materiale_print').insert(dbMaterial);
               if (error) throw error;
           }
-          await loadData();
+          // Optimistic update
+          if (material.id) {
+            setData(prev => ({
+              ...prev,
+              materialePrint: prev.materialePrint.map(m => 
+                m.id === material.id ? material as MaterialPrint : m
+              )
+            }));
+          } else {
+            setTimeout(() => loadData(), 100);
+          }
       } catch (err) {
           console.error('Error saving print material:', err);
           throw err;
@@ -594,7 +651,11 @@ export function useSupabaseData() {
       try {
           const { error } = await supabase.from('materiale_print').delete().eq('id', id);
           if (error) throw error;
-          await loadData();
+          // Optimistic update
+          setData(prev => ({
+            ...prev,
+            materialePrint: prev.materialePrint.filter(m => m.id !== id)
+          }));
       } catch (err) {
           console.error('Error deleting print material:', err);
           throw err;
@@ -616,7 +677,17 @@ export function useSupabaseData() {
               const { error } = await supabase.from('materiale_laminare').insert(dbMaterial);
               if (error) throw error;
           }
-          await loadData();
+          // Optimistic update
+          if (material.id) {
+            setData(prev => ({
+              ...prev,
+              materialeLaminare: prev.materialeLaminare.map(m => 
+                m.id === material.id ? material as MaterialLaminare : m
+              )
+            }));
+          } else {
+            setTimeout(() => loadData(), 100);
+          }
       } catch (err) {
           console.error('Error saving lamination material:', err);
           throw err;
@@ -627,7 +698,11 @@ export function useSupabaseData() {
       try {
           const { error } = await supabase.from('materiale_laminare').delete().eq('id', id);
           if (error) throw error;
-          await loadData();
+          // Optimistic update
+          setData(prev => ({
+            ...prev,
+            materialeLaminare: prev.materialeLaminare.filter(m => m.id !== id)
+          }));
       } catch (err) {
           console.error('Error deleting lamination material:', err);
           throw err;
@@ -652,7 +727,11 @@ export function useSupabaseData() {
               const { error } = await supabase.from('setari_print_alb').insert(dbSetari);
               if (error) throw error;
           }
-          await loadData();
+          // Optimistic update
+          setData(prev => ({
+            ...prev,
+            setariPrintAlb: setari
+          }));
       } catch (err) {
           console.error('Error saving white print settings:', err);
           throw err;
@@ -662,7 +741,7 @@ export function useSupabaseData() {
   // Load data on mount
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   return {
     data,
