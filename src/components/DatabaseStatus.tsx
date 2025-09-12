@@ -33,20 +33,20 @@ export default function DatabaseStatus({ onClose }: DatabaseStatusProps) {
       try {
         const { data, error } = await supabase
           .from('categorii')
-          .select('id, nume')
+          .select('*')
           .limit(1);
         
         if (error) {
           testResults.push({
             test: 'Citire Categorii (Public)',
             status: 'error',
-            message: `Eroare: ${error.message}`
+            message: `Eroare: ${error.message} | Code: ${error.code} | Details: ${error.details}`
           });
         } else {
           testResults.push({
             test: 'Citire Categorii (Public)',
             status: 'success',
-            message: `Succes - găsite ${data?.length || 0} categorii`
+            message: `Succes - găsite ${data?.length || 0} categorii. Sample: ${JSON.stringify(data?.[0] || {})}`
           });
         }
       } catch (err) {
