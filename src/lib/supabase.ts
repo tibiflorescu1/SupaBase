@@ -5,6 +5,17 @@ import type {
   DatabaseVehicul,
   DatabaseAcoperire,
   DatabaseOptiuneExtra,
+  DatabaseMaterialPrint,
+  DatabaseMaterialLaminare,
+  DatabaseSetariPrintAlb,
+  DatabaseFisier
+} from '../types/database';
+
+export interface Fisier {
+  nume: string;
+  dataUrl: string;
+}
+
 export interface Categorie {
   id: string;
   nume: string;
@@ -14,13 +25,17 @@ export interface OptiuneExtra {
   id: string;
   nume: string;
   pret: number;
+  fisier?: Fisier;
+  linkFisier?: string;
 }
 
 export interface Acoperire {
   id: string;
   nume: string;
   pret: number;
+  fisier?: Fisier;
   linkFisier?: string;
+}
 
 export interface Vehicul {
   id: string;
