@@ -13,7 +13,6 @@ interface MaterialsTabProps {
 }
 
 export default function MaterialsTab({ 
-  const { canEdit, canDelete } = useAuth();
   data, 
   onSaveMaterialPrint, 
   onDeleteMaterialPrint, 
@@ -21,6 +20,7 @@ export default function MaterialsTab({
   onDeleteMaterialLaminare,
   onSaveSetariPrintAlb 
 }: MaterialsTabProps) {
+  const { canEdit, canDelete } = useAuth();
   const [activeTab, setActiveTab] = useState<'print' | 'laminare' | 'setari'>('print');
   const [editingPrint, setEditingPrint] = useState<MaterialPrint | null>(null);
   const [editingLaminare, setEditingLaminare] = useState<MaterialLaminare | null>(null);
