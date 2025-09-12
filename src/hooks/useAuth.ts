@@ -51,8 +51,13 @@ export function useAuth() {
 
       if (error) {
         console.error('Error loading user profile:', error);
+        // If profile doesn't exist, try to create it
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, will be created by trigger');
+        }
         setProfile(null);
       } else {
+        console.log('User profile loaded:', data);
         setProfile(data);
       }
     } catch (error) {

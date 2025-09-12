@@ -146,6 +146,11 @@ export default function App() {
               
               {/* Stats */}
               <div className="flex items-center space-x-4 text-sm text-gray-600">
+                {profile && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                    {profile.role.toUpperCase()}
+                  </span>
+                )}
                 <span>Vehicule total: {data.vehicule.length}</span>
                 <span>Unice (nume): {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
                 <span>Categorii: {data.categorii.length}</span>
