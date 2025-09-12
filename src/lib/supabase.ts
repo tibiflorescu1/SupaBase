@@ -84,3 +84,4 @@ export interface DatabaseFisier {
   nume: string;
   data_url: string;
   created_at?: string;
+}
