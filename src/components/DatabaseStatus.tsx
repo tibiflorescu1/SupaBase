@@ -7,7 +7,9 @@ import type {
   DatabaseOptiuneExtra,
   DatabaseMaterialPrint,
   DatabaseMaterialLaminare,
-  DatabaseSetariPrintAlb
+  DatabaseSetariPrintAlb,
+  DatabaseFisier,
+  Fisier
 } from '../lib/supabase';
 
 // Transform database types to app types
@@ -20,6 +22,7 @@ export interface OptiuneExtra {
   id: string;
   nume: string;
   pret: number;
+  fisier?: Fisier;
   linkFisier?: string;
 }
 
@@ -27,6 +30,7 @@ export interface Acoperire {
   id: string;
   nume: string;
   pret: number;
+  fisier?: Fisier;
   linkFisier?: string;
 }
 
