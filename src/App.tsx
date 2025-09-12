@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import CategoriesTab from './components/CategoriesTab';
-import ModelsTab from './components/ModelsTab';
 import MaterialsTab from './components/MaterialsTab';
 import CalculatorTab from './components/CalculatorTab';
 import ImportExportTab from './components/ImportExportTab';
@@ -12,7 +11,6 @@ type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
-  const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
   
   const {
     data,
@@ -98,15 +96,6 @@ export default function App() {
                 <span>Categorii: {data.categorii.length}</span>
                 <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
               </div>
-              
-              {/* Action Buttons */}
-              <button
-                onClick={() => setShowDatabaseStatus(true)}
-                className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                <span>Verifică DB</span>
-              </button>
             </div>
           </div>
         </div>
@@ -136,19 +125,6 @@ export default function App() {
           />
         )}
         
-        {activeTab === 'models' && (
-          <ModelsTab
-            data={data}
-            onSaveVehicul={saveVehicul}
-            onDeleteVehicul={deleteVehicul}
-            onSaveAcoperire={saveAcoperire}
-            onDeleteAcoperire={deleteAcoperire}
-            onSaveOptiuneExtra={saveOptiuneExtra}
-            onDeleteOptiuneExtra={deleteOptiuneExtra}
-            onRefetch={refetch}
-          />
-        )}
-        
         {activeTab === 'materials' && (
           <MaterialsTab
             data={data}
@@ -171,11 +147,6 @@ export default function App() {
           />
         )}
       </main>
-
-      {/* Database Status Modal */}
-      {showDatabaseStatus && (
-        <DatabaseStatus onClose={() => setShowDatabaseStatus(false)} />
-      )}
     </div>
   );
 }
