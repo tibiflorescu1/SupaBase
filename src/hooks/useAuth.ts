@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
-import type { UserProfile } from '../lib/supabase';
+
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  role: 'admin' | 'editor' | 'viewer';
+  created_at?: string;
+  updated_at?: string;
+  is_active: boolean;
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -12,6 +22,7 @@ export function useAuth() {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -24,6 +35,7 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -42,28 +54,48 @@ export function useAuth() {
   const loadUserProfile = async (userId: string) => {
     try {
       console.log('Loading profile for user:', userId);
+      
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('id, email, full_name, avatar_url, role, created_at, updated_at, is_active')
         .eq('id', userId)
         .single();
 
       if (error) {
-        console.error('Error loading user profile:', error.message);
-        // If profile doesn't exist, try to create it
+        console.error('Error loading user profile:', error);
+        
+        // If profile doesn't exist, create it
         if (error.code === 'PGRST116') {
           console.log('Profile not found, creating one...');
           await createUserProfile(userId);
         } else {
-          setProfile(null);
+          // For other errors, set a default profile
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user?.email) {
+            setProfile({
+              id: userId,
+              email: userData.user.email,
+              role: 'viewer',
+              is_active: true
+            });
+          }
         }
       } else {
         console.log('User profile loaded:', data);
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
-      setProfile(null);
+      console.error('Error in loadUserProfile:', error);
+      // Set a fallback profile to prevent app crash
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user?.email) {
+        setProfile({
+          id: userId,
+          email: userData.user.email,
+          role: 'viewer',
+          is_active: true
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -82,17 +114,34 @@ export function useAuth() {
           role: 'viewer',
           is_active: true
         })
-        .select()
+        .select('id, email, full_name, avatar_url, role, created_at, updated_at, is_active')
         .single();
 
       if (error) {
         console.error('Error creating user profile:', error);
+        // Set fallback profile
+        setProfile({
+          id: userId,
+          email: userData.user.email,
+          role: 'viewer',
+          is_active: true
+        });
       } else {
         console.log('User profile created:', data);
         setProfile(data);
       }
     } catch (error) {
       console.error('Error in createUserProfile:', error);
+      // Set fallback profile
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user?.email) {
+        setProfile({
+          id: userId,
+          email: userData.user.email,
+          role: 'viewer',
+          is_active: true
+        });
+      }
     }
   };
 
@@ -124,8 +173,8 @@ export function useAuth() {
     if (!profile) return false;
     
     const roleHierarchy = { viewer: 1, editor: 2, admin: 3 };
-    const userLevel = roleHierarchy[profile.role];
-    const requiredLevel = roleHierarchy[requiredRole];
+    const userLevel = roleHierarchy[profile.role] || 1;
+    const requiredLevel = roleHierarchy[requiredRole] || 1;
     
     return userLevel >= requiredLevel;
   };

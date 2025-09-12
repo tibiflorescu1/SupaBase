@@ -148,7 +148,7 @@ export default function App() {
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 {profile && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                    {profile.role.toUpperCase()}
+                    {profile.role?.toUpperCase() || 'VIEWER'}
                   </span>
                 )}
                 <span>Vehicule total: {data.vehicule.length}</span>
