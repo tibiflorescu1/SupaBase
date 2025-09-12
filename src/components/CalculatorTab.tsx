@@ -134,7 +134,7 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md space-y-6">
-                 <h2 className="text-2xl font-bold text-gray-700 border-b pb-4">Calculator Ofertă</h2>
+                 <h2 className="text-2xl font-bold text-gray-700 border-b pb-4">Calculator Preț Grafică Vehicule</h2>
                 
                 {/* Filters */}
                 <div>
