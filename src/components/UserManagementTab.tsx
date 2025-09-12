@@ -7,12 +7,10 @@ import { useAuth } from '../hooks/useAuth';
 interface SimpleUserProfile {
   id: string;
   email: string;
-  full_name?: string;
-  avatar_url?: string;
   role: 'admin' | 'editor' | 'viewer';
   created_at?: string;
   updated_at?: string;
-  is_active: boolean;
+  is_active?: boolean;
 }
 
 export default function UserManagementTab() {
@@ -39,7 +37,7 @@ export default function UserManagementTab() {
       
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('id, email, full_name, avatar_url, role, created_at, updated_at, is_active')
+        .select('id, email, role, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -58,7 +56,6 @@ export default function UserManagementTab() {
         {
           id: 'mock-admin-1',
           email: 'tibiflorescu@yahoo.com',
-          full_name: 'Tibi Florescu',
           role: 'admin',
           is_active: true,
           created_at: new Date().toISOString()
@@ -66,7 +63,6 @@ export default function UserManagementTab() {
         {
           id: 'mock-admin-2', 
           email: 'tibiflorescu@gmail.com',
-          full_name: 'Tibi Florescu (Gmail)',
           role: 'admin',
           is_active: true,
           created_at: new Date().toISOString()
@@ -303,7 +299,7 @@ export default function UserManagementTab() {
                     )}
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {user.full_name || 'Nume necunoscut'}
+                        {user.email.split('@')[0]}
                         {user.id === currentUser?.id && (
                           <span className="ml-2 text-xs text-blue-600">(Tu)</span>
                         )}
