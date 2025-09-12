@@ -33,7 +33,7 @@ export default function UserManagementTab() {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Loading users from user_profiles...');
+      console.log('🔍 Attempting to load users from user_profiles...');
       
       const { data, error } = await supabase
         .from('user_profiles')
@@ -41,17 +41,60 @@ export default function UserManagementTab() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error loading users:', error);
-        throw error;
+        console.error('❌ Database error:', error);
+        console.log('🔄 Falling back to mock users...');
+        
+        // Set mock users immediately on database error
+        setUsers([
+          {
+            id: 'mock-admin-1',
+            email: 'tibiflorescu@yahoo.com',
+            role: 'admin',
+            is_active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'mock-admin-2', 
+            email: 'tibiflorescu@gmail.com',
+            role: 'admin',
+            is_active: true,
+            created_at: new Date().toISOString()
+          }
+        ]);
+        
+        setError(`Eroare bază de date: ${error.message}. Se folosesc utilizatori de test.`);
+        return; // Exit early with mock data
       }
       
       console.log('✅ Users loaded:', data?.length || 0);
-      setUsers(data || []);
+      
+      if (data && data.length > 0) {
+        setUsers(data);
+        setError(null);
+      } else {
+        console.log('📝 No users found in database, using mock users');
+        setUsers([
+          {
+            id: 'mock-admin-1',
+            email: 'tibiflorescu@yahoo.com',
+            role: 'admin',
+            is_active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'mock-admin-2', 
+            email: 'tibiflorescu@gmail.com',
+            role: 'admin',
+            is_active: true,
+            created_at: new Date().toISOString()
+          }
+        ]);
+        setError('Tabela user_profiles este goală. Se afișează utilizatori de test.');
+      }
     } catch (error: any) {
       console.error('Error loading users:', error);
-      setError(error.message || 'Eroare la încărcarea utilizatorilor');
+      console.log('🔄 Exception caught, using mock users...');
       
-      // Fallback: show mock users if database fails
       setUsers([
         {
           id: 'mock-admin-1',
@@ -68,6 +111,8 @@ export default function UserManagementTab() {
           created_at: new Date().toISOString()
         }
       ]);
+      
+      setError(`Excepție: ${error.message || 'Eroare necunoscută'}. Se folosesc utilizatori de test.`);
     } finally {
       setLoading(false);
     }
@@ -220,14 +265,22 @@ export default function UserManagementTab() {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
           <div className="flex items-center">
-            <Shield className="w-5 h-5 text-yellow-600 mr-2" />
-            <span className="text-yellow-800 font-medium">Avertisment:</span>
+            <Shield className="w-5 h-5 text-orange-600 mr-2" />
+            <span className="text-orange-800 font-medium">Informație:</span>
           </div>
-          <p className="text-yellow-700 mt-1 text-sm">
-            {error} - Se afișează utilizatori mock pentru demonstrație.
+          <p className="text-orange-700 mt-1 text-sm">
+            {error}
           </p>
+          <div className="mt-2">
+            <button
+              onClick={loadUsers}
+              className="text-sm bg-orange-100 hover:bg-orange-200 text-orange-800 px-3 py-1 rounded-lg transition-colors"
+            >
+              🔄 Încearcă din nou
+            </button>
+          </div>
         </div>
       )}
 
@@ -334,7 +387,7 @@ export default function UserManagementTab() {
                     <select
                       value={user.role}
                       onChange={(e) => updateUserRole(user.id, e.target.value as 'admin' | 'editor' | 'viewer')}
-                      disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-')}
+                      disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-') || error !== null}
                       className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                     >
                       <option value="viewer">Viewer</option>
@@ -345,7 +398,7 @@ export default function UserManagementTab() {
                     {/* Toggle Status Button */}
                     <button
                       onClick={() => toggleUserStatus(user.id, user.is_active)}
-                      disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-')}
+                      disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-') || error !== null}
                       className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         user.is_active
                           ? 'text-red-600 hover:text-red-800 hover:bg-red-50'
