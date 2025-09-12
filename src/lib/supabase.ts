@@ -12,7 +12,7 @@ if (!supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Database types
+// Database types  
 export interface DatabaseCategorie {
   id: string;
   nume: string;
@@ -84,4 +84,3 @@ export interface DatabaseFisier {
   nume: string;
   data_url: string;
   created_at?: string;
-}

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { 
-  DatabaseCategorie, 
-  DatabaseVehicul, 
-  DatabaseAcoperire, 
+import type {
+  DatabaseCategorie,
+  DatabaseVehicul,
+  DatabaseAcoperire,
   DatabaseOptiuneExtra,
   DatabaseMaterialPrint,
   DatabaseMaterialLaminare,
