@@ -188,7 +188,9 @@ export function useSupabaseData() {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Loading data from Supabase...');
+      console.log('🔍 Starting data load from Supabase...');
+      console.log('📊 Supabase URL:', import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Missing');
+      console.log('🔑 Supabase Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
 
       // Fetch all data in parallel
       const [
@@ -218,7 +220,9 @@ export function useSupabaseData() {
       ].filter(Boolean);
 
       if (errors.length > 0) {
-        throw new Error(`Database errors: ${errors.map(e => e?.message).join(', ')}`);
+        console.error('❌ Database errors:', errors);
+        // Don't throw immediately, try to work with partial data
+        setError(`Erori parțiale: ${errors.map(e => e?.message).join(', ')}`);
       }
 
       // Debug logging
@@ -231,6 +235,11 @@ export function useSupabaseData() {
       console.log('- Materiale laminare:', materialeLaminare?.length || 0);
       console.log('- Setari print alb:', setariPrintAlb?.length || 0);
       console.log('- Fisiere:', fisiere?.length || 0);
+
+      // If we have no data at all, something is wrong
+      if (!categorii && !vehicule && !acoperiri && !optiuni && !materialePrint && !materialeLaminare) {
+        throw new Error('Nu s-au putut încărca datele din baza de date. Verifică conexiunea.');
+      }
 
       // Transform and set data
       const transformedData = await transformData(
@@ -272,9 +281,20 @@ export function useSupabaseData() {
       setData(transformedData);
     } catch (err) {
       console.error('Error loading data from Supabase:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load data';
+      setError(errorMessage);
+      
+      // Set minimal data to prevent infinite loading
+      setData({
+        vehicule: [],
+        categorii: [],
+        materialePrint: [],
+        materialeLaminare: [],
+        setariPrintAlb: { tipCalcul: 'procentual', valoare: 35 }
+      });
     } finally {
       setLoading(false);
+      console.log('✅ Data loading completed');
     }
   };
 
