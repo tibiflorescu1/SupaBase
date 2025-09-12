@@ -34,18 +34,45 @@ export default function UserManagementTab() {
       setError(null);
       
       console.log('🔍 Loading users from user_profiles...');
+      console.log('📊 Supabase client status:', !!supabase);
+      console.log('🔑 Environment check:', {
+        hasUrl: !!import.meta.env.VITE_SUPABASE_URL,
+        hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+      });
       
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('📋 Raw response from Supabase:');
+      console.log('- Data:', data);
+      console.log('- Error:', error);
+      console.log('- Data length:', data?.length || 0);
+
       if (error) {
-        throw error;
+        console.error('❌ Supabase error:', error);
+        // Don't throw immediately, try to show what we can
+        setError(`Eroare Supabase: ${error.message}`);
+        
+        // If it's a policy error, show mock data
+        if (error.message?.includes('policy') || error.message?.includes('RLS') || error.message?.includes('permission')) {
+          console.log('🔄 Policy error detected, showing mock data...');
+          setUsers([
+            {
+              id: 'mock-admin-1',
+              email: 'tibiflorescu@yahoo.com',
+              role: 'admin',
+              is_active: true,
+              created_at: new Date().toISOString()
+            }
+          ]);
+          setError('Probleme cu politicile RLS. Se afișează date de test. Verifică migrația SQL.');
+          return;
+        }
       }
       
       console.log('✅ Users loaded:', data?.length || 0);
-      console.log('📋 User data:', data);
       
       if (data && data.length > 0) {
         // Transform data to ensure is_active field exists
@@ -53,12 +80,22 @@ export default function UserManagementTab() {
           ...user,
           is_active: user.is_active !== undefined ? user.is_active : true
         }));
+        console.log('✅ Transformed users:', transformedUsers);
         setUsers(transformedUsers);
         setError(null);
       } else {
         console.log('📝 No users found in database');
-        setUsers([]);
-        setError('Nu s-au găsit utilizatori în baza de date.');
+        // Show mock data if no real users found
+        setUsers([
+          {
+            id: 'mock-admin-1',
+            email: 'tibiflorescu@yahoo.com',
+            role: 'admin',
+            is_active: true,
+            created_at: new Date().toISOString()
+          }
+        ]);
+        setError('Nu s-au găsit utilizatori în baza de date. Se afișează date de test.');
       }
     } catch (error: any) {
       console.error('Error loading users:', error);
@@ -72,17 +109,10 @@ export default function UserManagementTab() {
           role: 'admin',
           is_active: true,
           created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-admin-2', 
-          email: 'tibiflorescu@gmail.com',
-          role: 'admin',
-          is_active: true,
-          created_at: new Date().toISOString()
         }
       ]);
       
-      setError(`Eroare la încărcare: ${error.message || 'Eroare necunoscută'}. Se afișează utilizatori de test.`);
+      setError(`Eroare la încărcare: ${error.message || 'Eroare necunoscută'}. Se afișează date de test.`);
     } finally {
       setLoading(false);
     }
