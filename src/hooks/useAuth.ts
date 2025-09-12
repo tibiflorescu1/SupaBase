@@ -99,6 +99,25 @@ export function useAuth() {
     if (error) throw error;
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (error) throw error;
+  };
+
+  const signUpWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -126,6 +145,8 @@ export function useAuth() {
     loading,
     signInWithGoogle,
     signInWithApple,
+    signInWithEmail,
+    signUpWithEmail,
     signOut,
     hasPermission,
     isAdmin,
