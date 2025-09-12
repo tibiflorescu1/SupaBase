@@ -43,6 +43,7 @@ export function useAuth() {
 
   const loadUserProfile = async (userId: string) => {
     try {
+      console.log('Loading profile for user:', userId);
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -50,10 +51,11 @@ export function useAuth() {
         .single();
 
       if (error) {
-        console.error('Error loading user profile:', error);
+        console.error('Error loading user profile:', error.message);
         // If profile doesn't exist, try to create it
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, will be created by trigger');
+          console.log('Profile not found, creating one...');
+          await createUserProfile(userId);
         }
         setProfile(null);
       } else {
@@ -68,6 +70,33 @@ export function useAuth() {
     }
   };
 
+  const createUserProfile = async (userId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user?.email) return;
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: userId,
+          email: userData.user.email,
+          role: 'viewer',
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating user profile:', error);
+      } else {
+        console.log('User profile created:', data);
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error in createUserProfile:', error);
+    }
+  };
+
   const updateLastLogin = async (userId: string) => {
     try {
       const { error } = await supabase
@@ -76,7 +105,7 @@ export function useAuth() {
         .eq('id', userId);
       
       if (error) {
-        console.error('Error updating last login:', error);
+        console.error('Error updating last login:', error.message);
       }
     } catch (error) {
       console.error('Error updating last login:', error);
