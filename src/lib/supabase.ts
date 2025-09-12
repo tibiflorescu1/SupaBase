@@ -3,45 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
+if (!supabaseUrl) {
+  throw new Error('Missing Supabase URL environment variable');
+}
+if (!supabaseAnonKey) {
+  throw new Error('Missing Supabase anon key environment variable');
 }
 
-// Create client even with missing env vars to prevent import errors
-export const supabase = createClient( 
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
-  {
-    db: {
-      schema: 'public',
-    },
-    auth: {
-      persistSession: false, // Disable auth session persistence
-    },
-    global: {
-      headers: {
-        'x-client-info': 'vehicle-graphics-app@1.0.0',
-      },
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 2, // Limit realtime events
-      },
-    },
-  }
-);
-
-// Auth types
-export interface UserProfile {
-  id: string;
-  email: string;
-  full_name?: string;
-  avatar_url?: string;
-  role: 'admin' | 'editor' | 'viewer';
-  created_at?: string;
-  updated_at?: string;
-  is_active: boolean;
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types  
 export interface DatabaseCategorie {

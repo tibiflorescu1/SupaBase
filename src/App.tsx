@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet } from 'lucide-react';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import CategoriesTab from './components/CategoriesTab';
+import ModelsTab from './components/ModelsTab';
 import MaterialsTab from './components/MaterialsTab';
 import CalculatorTab from './components/CalculatorTab';
 import ImportExportTab from './components/ImportExportTab';
 import DatabaseStatus from './components/DatabaseStatus';
 
-type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export';
+type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'users';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
-  
+  const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
   const {
     data,
     loading,
@@ -37,8 +38,7 @@ export default function App() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Se încarcă aplicația...</p>
-          <p className="text-sm text-gray-500 mt-2">Încărcare date...</p>
+          <p className="text-gray-600">Se încarcă datele...</p>
         </div>
       </div>
     );
@@ -68,7 +68,7 @@ export default function App() {
     { id: 'models' as Tab, name: 'Modele', icon: Car },
     { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
     { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
-    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet }
+    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
   ];
 
   return (
@@ -89,13 +89,19 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center space-x-6">
-              {/* Stats */}
               <div className="flex items-center space-x-4 text-sm text-gray-600">
                 <span>Vehicule total: {data.vehicule.length}</span>
                 <span>Unice (nume): {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
                 <span>Categorii: {data.categorii.length}</span>
                 <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
               </div>
+              <button
+                onClick={() => setShowDatabaseStatus(true)}
+                className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                <span>Verifică DB</span>
+              </button>
             </div>
           </div>
         </div>
@@ -125,6 +131,19 @@ export default function App() {
           />
         )}
         
+        {activeTab === 'models' && (
+          <ModelsTab
+            data={data}
+            onSaveVehicul={saveVehicul}
+            onDeleteVehicul={deleteVehicul}
+            onSaveAcoperire={saveAcoperire}
+            onDeleteAcoperire={deleteAcoperire}
+            onSaveOptiuneExtra={saveOptiuneExtra}
+            onDeleteOptiuneExtra={deleteOptiuneExtra}
+            onRefetch={refetch}
+          />
+        )}
+        
         {activeTab === 'materials' && (
           <MaterialsTab
             data={data}
@@ -147,6 +166,11 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Database Status Modal */}
+      {showDatabaseStatus && (
+        <DatabaseStatus onClose={() => setShowDatabaseStatus(false)} />
+      )}
     </div>
   );
 }
