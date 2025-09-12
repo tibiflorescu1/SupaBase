@@ -675,3 +675,696 @@ export default function ModelsTab({
                           value={link}
                           onChange={(e) => handleImageLinkChange(index, e.target.value)}
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        {imageLinks.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeImageLinkField(index)}
+                            className="p-2 text-red-600 hover:text-red-800"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {imageLinks.length < 5 && (
+                      <button
+                        type="button"
+                        onClick={addImageLinkField}
+                        className="flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Adaugă link
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Auto Search Method */}
+                {imageUploadMethod === 'search' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Căutare automată de imagini bazată pe producător și model
+                    </p>
+                    <button
+                      type="button"
+                      onClick={searchVehicleImages}
+                      disabled={searchingImages || !newVehicle.producator || !newVehicle.model}
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {searchingImages ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Căutare...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4 mr-2" />
+                          Caută Imagini
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* Image Preview */}
+                {vehicleImages.length > 0 && (
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium text-gray-700">Preview Imagini:</h5>
+                    <div className="grid grid-cols-2 gap-2">
+                      {vehicleImages.slice(0, 4).map((image, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={image}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-20 object-cover rounded-lg border"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkVyb3JlIGltYWdpbmU8L3RleHQ+PC9zdmc+';
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = vehicleImages.filter((_, i) => i !== index);
+                              setVehicleImages(newImages);
+                            }}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Anulează
+                </button>
+                <button
+                  onClick={handleAddVehicle}
+                  disabled={!newVehicle.producator || !newVehicle.model || !newVehicle.categorieId}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Adaugă
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Vehicle Modal */}
+      {editingVehicle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Editează Model</h3>
+              <button
+                onClick={() => setEditingVehicle(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Producător
+                </label>
+                <input
+                  type="text"
+                  value={editingVehicle.producator}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, producator: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Model
+                </label>
+                <input
+                  type="text"
+                  value={editingVehicle.model}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, model: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categorie
+                </label>
+                <select
+                  value={editingVehicle.categorieId}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, categorieId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selectează categoria</option>
+                  {data.categorii.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.nume}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Perioada fabricație
+                </label>
+                <input
+                  type="text"
+                  value={editingVehicle.perioadaFabricatie || ''}
+                  onChange={(e) => setEditingVehicle({ ...editingVehicle, perioadaFabricatie: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="ex: 2020-2024"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Anulează
+                </button>
+                <button
+                  onClick={handleUpdateVehicle}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Salvează
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Vehicle Details Modal */}
+      {viewingVehicle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold">
+                {viewingVehicle.producator} {viewingVehicle.model}
+              </h3>
+              <button
+                onClick={() => setViewingVehicle(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Vehicle Info */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Informații Vehicul</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Producător:</span>
+                      <span className="font-medium">{viewingVehicle.producator}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Model:</span>
+                      <span className="font-medium">{viewingVehicle.model}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Categorie:</span>
+                      <span className="font-medium">{getCategoryName(viewingVehicle.categorieId)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Perioada:</span>
+                      <span className="font-medium">{viewingVehicle.perioadaFabricatie || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vehicle Image */}
+                {viewingVehicle.imagine && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Imagine</h4>
+                    <img
+                      src={viewingVehicle.imagine}
+                      alt={`${viewingVehicle.producator} ${viewingVehicle.model}`}
+                      className="w-full h-48 object-cover rounded-lg border"
+                      onError={(e) => {
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkZhcmEgaW1hZ2luZTwvdGV4dD48L3N2Zz4=';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Acoperiri and Options */}
+              <div className="space-y-6">
+                {/* Acoperiri */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">
+                    Acoperiri ({viewingVehicle.acoperiri?.length || 0})
+                  </h4>
+                  {viewingVehicle.acoperiri && viewingVehicle.acoperiri.length > 0 ? (
+                    <div className="space-y-2">
+                      {viewingVehicle.acoperiri.map((acoperire) => (
+                        <div key={acoperire.id} className="bg-blue-50 p-3 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium text-blue-900">{acoperire.nume}</div>
+                              <div className="text-blue-700">{acoperire.pret} RON</div>
+                            </div>
+                            <div className="flex gap-2">
+                              {acoperire.linkFisier && (
+                                <a
+                                  href={acoperire.linkFisier}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 text-blue-600 hover:text-blue-800"
+                                  title="Deschide link"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              )}
+                              {acoperire.fisier && (
+                                <button
+                                  onClick={() => downloadFile(acoperire.fisier!)}
+                                  className="p-1 text-blue-600 hover:text-blue-800"
+                                  title="Descarcă fișier"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Nu există acoperiri definite</p>
+                  )}
+                </div>
+
+                {/* Optiuni Extra */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">
+                    Opțiuni Extra ({viewingVehicle.optiuniExtra?.length || 0})
+                  </h4>
+                  {viewingVehicle.optiuniExtra && viewingVehicle.optiuniExtra.length > 0 ? (
+                    <div className="space-y-2">
+                      {viewingVehicle.optiuniExtra.map((optiune) => (
+                        <div key={optiune.id} className="bg-green-50 p-3 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium text-green-900">{optiune.nume}</div>
+                              <div className="text-green-700">{optiune.pret} RON</div>
+                            </div>
+                            <div className="flex gap-2">
+                              {optiune.linkFisier && (
+                                <a
+                                  href={optiune.linkFisier}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 text-green-600 hover:text-green-800"
+                                  title="Deschide link"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              )}
+                              {optiune.fisier && (
+                                <button
+                                  onClick={() => downloadFile(optiune.fisier!)}
+                                  className="p-1 text-green-600 hover:text-green-800"
+                                  title="Descarcă fișier"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Nu există opțiuni extra definite</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Details Modal */}
+      {editingDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold">
+                Editează Acoperiri și Opțiuni - {editingDetails.producator} {editingDetails.model}
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveAllChanges}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvează Tot
+                </button>
+                <button
+                  onClick={() => setEditingDetails(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Acoperiri Section */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-lg font-medium text-gray-900">Acoperiri</h4>
+                  <span className="text-sm text-gray-500">
+                    {editingDetails.acoperiri?.length || 0} acoperiri
+                  </span>
+                </div>
+                
+                {/* Add New Acoperire */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h5 className="font-medium text-blue-900 mb-3">Adaugă Acoperire Nouă</h5>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Nume acoperire"
+                      value={newAcoperire.nume}
+                      onChange={(e) => setNewAcoperire({ ...newAcoperire, nume: e.target.value })}
+                      className="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Preț (RON)"
+                      value={newAcoperire.pret}
+                      onChange={(e) => setNewAcoperire({ ...newAcoperire, pret: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={() => handleAddAcoperire(editingDetails.id)}
+                      disabled={!newAcoperire.nume || newAcoperire.pret <= 0}
+                      className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Adaugă Acoperire
+                    </button>
+                  </div>
+                </div>
+
+                {/* Existing Acoperiri */}
+                <div className="space-y-3">
+                  {editingDetails.acoperiri && editingDetails.acoperiri.length > 0 ? (
+                    editingDetails.acoperiri.map((acoperire) => (
+                      <div key={acoperire.id} className="bg-white border border-blue-200 p-4 rounded-lg">
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={acoperire.nume}
+                            onChange={(e) => {
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  acoperiri: prev.acoperiri.map(ac => 
+                                    ac.id === acoperire.id ? { ...ac, nume: e.target.value } : ac
+                                  )
+                                };
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <input
+                            type="number"
+                            value={acoperire.pret}
+                            onChange={(e) => {
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  acoperiri: prev.acoperiri.map(ac => 
+                                    ac.id === acoperire.id ? { ...ac, pret: Number(e.target.value) } : ac
+                                  )
+                                };
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          
+                          {/* Link Field */}
+                          <input
+                            type="url"
+                            placeholder="Link extern (opțional)"
+                            value={acoperire.linkFisier || ''}
+                            onChange={(e) => {
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  acoperiri: prev.acoperiri.map(ac => 
+                                    ac.id === acoperire.id ? { ...ac, linkFisier: e.target.value } : ac
+                                  )
+                                };
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+
+                          {/* File Upload */}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              id={`acoperire-file-${acoperire.id}`}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleUpdateAcoperire(acoperire, file);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor={`acoperire-file-${acoperire.id}`}
+                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 cursor-pointer"
+                            >
+                              <Upload className="w-4 h-4" />
+                              {uploadingFile === acoperire.id ? 'Se încarcă...' : 'Încarcă Fișier'}
+                            </label>
+                            
+                            {acoperire.fisier && (
+                              <button
+                                onClick={() => downloadFile(acoperire.fisier!)}
+                                className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                              >
+                                <Download className="w-4 h-4" />
+                                {acoperire.fisier.nume}
+                              </button>
+                            )}
+                            
+                            {acoperire.linkFisier && (
+                              <a
+                                href={acoperire.linkFisier}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                Link
+                              </a>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleDeleteAcoperire(acoperire.id)}
+                              className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">Nu există acoperiri definite</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Optiuni Extra Section */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-lg font-medium text-gray-900">Opțiuni Extra</h4>
+                  <span className="text-sm text-gray-500">
+                    {editingDetails.optiuniExtra?.length || 0} opțiuni
+                  </span>
+                </div>
+                
+                {/* Add New Optiune */}
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h5 className="font-medium text-green-900 mb-3">Adaugă Opțiune Nouă</h5>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Nume opțiune"
+                      value={newOptiune.nume}
+                      onChange={(e) => setNewOptiune({ ...newOptiune, nume: e.target.value })}
+                      className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Preț (RON)"
+                      value={newOptiune.pret}
+                      onChange={(e) => setNewOptiune({ ...newOptiune, pret: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={() => handleAddOptiune(editingDetails.id)}
+                      disabled={!newOptiune.nume || newOptiune.pret <= 0}
+                      className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Adaugă Opțiune
+                    </button>
+                  </div>
+                </div>
+
+                {/* Existing Optiuni */}
+                <div className="space-y-3">
+                  {editingDetails.optiuniExtra && editingDetails.optiuniExtra.length > 0 ? (
+                    editingDetails.optiuniExtra.map((optiune) => (
+                      <div key={optiune.id} className="bg-white border border-green-200 p-4 rounded-lg">
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={optiune.nume}
+                            onChange={(e) => {
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  optiuniExtra: prev.optiuniExtra.map(opt => 
+                                    opt.id === optiune.id ? { ...opt, nume: e.target.value } : opt
+                                  )
+                                };
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
+                          <input
+                            type="number"
+                            value={optiune.pret}
+                            onChange={(e) => {
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  optiuniExtra: prev.optiuniExtra.map(opt => 
+                                    opt.id === optiune.id ? { ...opt, pret: Number(e.target.value) } : opt
+                                  )
+                                };
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
+                          
+                          {/* Link Field */}
+                          <input
+                            type="url"
+                            placeholder="Link extern (opțional)"
+                            value={optiune.linkFisier || ''}
+                            onChange={(e) => {
+                              setEditingDetails(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  optiuniExtra: prev.optiuniExtra.map(opt => 
+                                    opt.id === optiune.id ? { ...opt, linkFisier: e.target.value } : opt
+                                  )
+                                };
+                              });
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
+
+                          {/* File Upload */}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              id={`optiune-file-${optiune.id}`}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleUpdateOptiune(optiune, file);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            <label
+                              htmlFor={`optiune-file-${optiune.id}`}
+                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 cursor-pointer"
+                            >
+                              <Upload className="w-4 h-4" />
+                              {uploadingFile === optiune.id ? 'Se încarcă...' : 'Încarcă Fișier'}
+                            </label>
+                            
+                            {optiune.fisier && (
+                              <button
+                                onClick={() => downloadFile(optiune.fisier!)}
+                                className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                              >
+                                <Download className="w-4 h-4" />
+                                {optiune.fisier.nume}
+                              </button>
+                            )}
+                            
+                            {optiune.linkFisier && (
+                              <a
+                                href={optiune.linkFisier}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                Link
+                              </a>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleDeleteOptiune(optiune.id)}
+                              className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">Nu există opțiuni extra definite</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
