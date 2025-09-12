@@ -82,37 +82,20 @@ export default function UserManagementTab() {
         }));
         console.log('✅ Transformed users:', transformedUsers);
         setUsers(transformedUsers);
-        setError(null);
+        setError(null); // Clear any previous errors
       } else {
         console.log('📝 No users found in database');
-        // Show mock data if no real users found
-        setUsers([
-          {
-            id: 'mock-admin-1',
-            email: 'tibiflorescu@yahoo.com',
-            role: 'admin',
-            is_active: true,
-            created_at: new Date().toISOString()
-          }
-        ]);
-        setError('Nu s-au găsit utilizatori în baza de date. Se afișează date de test.');
+        // Set empty array if no users found
+        setUsers([]);
+        setError('Nu s-au găsit utilizatori în baza de date.');
       }
     } catch (error: any) {
       console.error('Error loading users:', error);
-      console.log('🔄 Falling back to mock users due to error...');
+      console.log('🔄 Error loading users, setting empty array...');
       
-      // Fallback to mock users only on error
-      setUsers([
-        {
-          id: 'mock-admin-1',
-          email: 'tibiflorescu@yahoo.com',
-          role: 'admin',
-          is_active: true,
-          created_at: new Date().toISOString()
-        }
-      ]);
-      
-      setError(`Eroare la încărcare: ${error.message || 'Eroare necunoscută'}. Se afișează date de test.`);
+      // Set empty array on error
+      setUsers([]);
+      setError(`Eroare la încărcare: ${error.message || 'Eroare necunoscută'}`);
     } finally {
       setLoading(false);
     }
@@ -388,7 +371,7 @@ export default function UserManagementTab() {
                       value={user.role}
                       onChange={(e) => updateUserRole(user.id, e.target.value as 'admin' | 'editor' | 'viewer')}
                       disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-') || error !== null}
-                      className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                      className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                       <option value="viewer">Viewer</option>
                       <option value="editor">Editor</option>
@@ -398,7 +381,7 @@ export default function UserManagementTab() {
                     {/* Toggle Status Button */}
                     <button
                       onClick={() => toggleUserStatus(user.id, user.is_active)}
-                      disabled={saving || user.id === currentUser?.id || user.id.startsWith('mock-') || error !== null}
+                      disabled={saving || user.id === currentUser?.id || error !== null}
                       className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         user.is_active
                           ? 'text-red-600 hover:text-red-800 hover:bg-red-50'
