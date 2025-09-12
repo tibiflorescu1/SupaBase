@@ -208,9 +208,6 @@ export default function UserManagementTab() {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Ultima Conectare
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Înregistrat
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -261,9 +258,6 @@ export default function UserManagementTab() {
                   }`}>
                     {user.is_active ? 'Activ' : 'Inactiv'}
                   </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {user.last_login ? formatDate(user.last_login) : 'Niciodată'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {user.created_at ? formatDate(user.created_at) : '-'}
