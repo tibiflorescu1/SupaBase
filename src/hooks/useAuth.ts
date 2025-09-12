@@ -29,8 +29,6 @@ export function useAuth() {
         
         if (session?.user) {
           await loadUserProfile(session.user.id);
-          // Update last login
-          await updateLastLogin(session.user.id);
         } else {
           setProfile(null);
           setLoading(false);
@@ -56,8 +54,9 @@ export function useAuth() {
         if (error.code === 'PGRST116') {
           console.log('Profile not found, creating one...');
           await createUserProfile(userId);
+        } else {
+          setProfile(null);
         }
-        setProfile(null);
       } else {
         console.log('User profile loaded:', data);
         setProfile(data);
@@ -95,41 +94,6 @@ export function useAuth() {
     } catch (error) {
       console.error('Error in createUserProfile:', error);
     }
-  };
-
-  const updateLastLogin = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', userId);
-      
-      if (error) {
-        console.error('Error updating last login:', error.message);
-      }
-    } catch (error) {
-      console.error('Error updating last login:', error);
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    if (error) throw error;
-  };
-
-  const signInWithApple = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    if (error) throw error;
   };
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -176,8 +140,6 @@ export function useAuth() {
     profile,
     session,
     loading,
-    signInWithGoogle,
-    signInWithApple,
     signInWithEmail,
     signUpWithEmail,
     signOut,
