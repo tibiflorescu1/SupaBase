@@ -7,10 +7,16 @@ import type {
   DatabaseOptiuneExtra,
   DatabaseMaterialPrint,
   DatabaseMaterialLaminare,
-  DatabaseSetariPrintAlb
+  DatabaseSetariPrintAlb,
+  DatabaseFisier
 } from '../lib/supabase';
 
 // Transform database types to app types
+export interface Fisier {
+  nume: string;
+  dataUrl: string;
+}
+
 export interface Categorie {
   id: string;
   nume: string;
@@ -20,6 +26,7 @@ export interface OptiuneExtra {
   id: string;
   nume: string;
   pret: number;
+  fisier?: Fisier;
   linkFisier?: string;
 }
 
@@ -27,6 +34,7 @@ export interface Acoperire {
   id: string;
   nume: string;
   pret: number;
+  fisier?: Fisier;
   linkFisier?: string;
 }
 
@@ -224,8 +232,6 @@ export function useSupabaseData() {
       // Debug logging
       console.log('📊 Raw data from database:');
       console.log('- Categorii:', categorii?.length || 0);
-      console.log('- Categorii data:', categorii);
-      console.log('- Categorii error:', categoriiError);
       console.log('- Vehicule:', vehicule?.length || 0);
       console.log('- Acoperiri:', acoperiri?.length || 0);
       console.log('- Optiuni:', optiuni?.length || 0);
@@ -233,14 +239,6 @@ export function useSupabaseData() {
       console.log('- Materiale laminare:', materialeLaminare?.length || 0);
       console.log('- Setari print alb:', setariPrintAlb?.length || 0);
       console.log('- Fisiere:', fisiere?.length || 0);
-
-      // Debug specific categories issues
-      if (categoriiError) {
-        console.error('❌ Categories error details:', categoriiError);
-      }
-      if (!categorii || categorii.length === 0) {
-        console.warn('⚠️ No categories found - checking permissions');
-      }
 
       // Transform and set data
       const transformedData = await transformData(
