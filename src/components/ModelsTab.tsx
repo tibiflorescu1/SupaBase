@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Eye, CreditCard as Edit2, Trash2, Car, ExternalLink } from 'lucide-react';
+import { Plus, Eye, Settings2, CreditCard as Edit3, Trash2, Download, Upload, X, Save, ExternalLink } from 'lucide-react';
 import { AppData, Vehicul, Acoperire, OptiuneExtra } from '../hooks/useSupabaseData';
 
 interface ModelsTabProps {
@@ -23,10 +23,9 @@ export default function ModelsTab({
   onDeleteOptiuneExtra,
   onRefetch
 }: ModelsTabProps) {
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   const [editingVehicle, setEditingVehicle] = useState<Vehicul | null>(null);
-  const [editingAcoperire, setEditingAcoperire] = useState<Acoperire | null>(null);
-  const [editingOptiune, setEditingOptiune] = useState<OptiuneExtra | null>(null);
+  const [editingAcoperire, setEditingAcoperire] = useState<(Acoperire & { vehicul_id: string }) | null>(null);
+  const [editingOptiune, setEditingOptiune] = useState<(OptiuneExtra & { vehicul_id: string }) | null>(null);
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isAddingAcoperire, setIsAddingAcoperire] = useState(false);
   const [isAddingOptiune, setIsAddingOptiune] = useState(false);
@@ -35,8 +34,6 @@ export default function ModelsTab({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProducer, setSelectedProducer] = useState<string>('');
-
-  const selectedVehicle = data.vehicule.find(v => v.id === selectedVehicleId);
 
   // Filter vehicles
   const filteredVehicles = data.vehicule.filter(vehicle => {
@@ -64,6 +61,7 @@ export default function ModelsTab({
       await onSaveVehicul(editingVehicle);
       setEditingVehicle(null);
       setIsAddingVehicle(false);
+      await onRefetch();
     } catch (error) {
       console.error('Error saving vehicle:', error);
       alert('Eroare la salvarea vehiculului');
@@ -77,9 +75,7 @@ export default function ModelsTab({
       try {
         setSaving(true);
         await onDeleteVehicul(id);
-        if (selectedVehicleId === id) {
-          setSelectedVehicleId('');
-        }
+        await onRefetch();
       } catch (error) {
         console.error('Error deleting vehicle:', error);
         alert('Eroare la ștergerea vehiculului');
@@ -90,14 +86,13 @@ export default function ModelsTab({
   };
 
   const handleSaveAcoperire = async () => {
-    if (!editingAcoperire || !editingAcoperire.nume || !selectedVehicleId) return;
+    if (!editingAcoperire || !editingAcoperire.nume || !editingAcoperire.vehicul_id) return;
     
     try {
       setSaving(true);
       
       const acoperireData = {
         ...editingAcoperire,
-        vehicul_id: selectedVehicleId,
         pret: Number(editingAcoperire.pret) || 0
       };
 
@@ -106,6 +101,7 @@ export default function ModelsTab({
       setEditingAcoperire(null);
       setIsAddingAcoperire(false);
       setSelectedFile(null);
+      await onRefetch();
     } catch (error) {
       console.error('Error saving coverage:', error);
       alert('Eroare la salvarea acoperirii');
@@ -119,6 +115,7 @@ export default function ModelsTab({
       try {
         setSaving(true);
         await onDeleteAcoperire(id);
+        await onRefetch();
       } catch (error) {
         console.error('Error deleting coverage:', error);
         alert('Eroare la ștergerea acoperirii');
@@ -129,14 +126,13 @@ export default function ModelsTab({
   };
 
   const handleSaveOptiune = async () => {
-    if (!editingOptiune || !editingOptiune.nume || !selectedVehicleId) return;
+    if (!editingOptiune || !editingOptiune.nume || !editingOptiune.vehicul_id) return;
     
     try {
       setSaving(true);
       
       const optiuneData = {
         ...editingOptiune,
-        vehicul_id: selectedVehicleId,
         pret: Number(editingOptiune.pret) || 0
       };
 
@@ -145,6 +141,7 @@ export default function ModelsTab({
       setEditingOptiune(null);
       setIsAddingOptiune(false);
       setSelectedFile(null);
+      await onRefetch();
     } catch (error) {
       console.error('Error saving extra option:', error);
       alert('Eroare la salvarea opțiunii extra');
@@ -158,6 +155,7 @@ export default function ModelsTab({
       try {
         setSaving(true);
         await onDeleteOptiuneExtra(id);
+        await onRefetch();
       } catch (error) {
         console.error('Error deleting extra option:', error);
         alert('Eroare la ștergerea opțiunii extra');
@@ -198,7 +196,7 @@ export default function ModelsTab({
 
       {/* Search and Filter */}
       <div className="bg-white p-4 rounded-lg shadow-md">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             type="text"
             placeholder="Caută după producător sau model..."
@@ -208,7 +206,10 @@ export default function ModelsTab({
           />
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setSelectedProducer(''); // Reset producer when category changes
+            }}
             className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Toate categoriile</option>
@@ -216,8 +217,6 @@ export default function ModelsTab({
               <option key={cat.id} value={cat.id}>{cat.nume}</option>
             ))}
           </select>
-        </div>
-        <div className="mt-2">
           <select
             value={selectedProducer}
             onChange={(e) => setSelectedProducer(e.target.value)}
@@ -229,217 +228,197 @@ export default function ModelsTab({
             ))}
           </select>
         </div>
-        {(searchTerm || selectedCategory) && (
+        {(searchTerm || selectedCategory || selectedProducer) && (
           <div className="mt-2 text-sm text-gray-600">
             Afișez {filteredVehicles.length} vehicule
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Vehicle List */}
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">Lista Vehicule ({filteredVehicles.length})</h3>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
+      {/* Vehicle List */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Vehicul
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Categorie
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acoperiri
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Opțiuni Extra
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acțiuni
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
             {filteredVehicles.map((vehicle) => (
-              <div
-                key={vehicle.id}
-                className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                  selectedVehicleId === vehicle.id ? 'bg-blue-50 border-blue-200' : ''
-                }`}
-                onClick={() => setSelectedVehicleId(vehicle.id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">
+              <tr key={vehicle.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">
                       {vehicle.producator} {vehicle.model}
-                    </h4>
-                    <p className="text-sm text-gray-600">
-                      Categorie: {getCategoryName(vehicle.categorieId)}
-                    </p>
-                    {vehicle.perioadaFabricatie && (
-                      <p className="text-sm text-gray-600">
-                        Perioada: {vehicle.perioadaFabricatie}
-                      </p>
-                    )}
-                    <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                      <span>{vehicle.acoperiri.length} acoperiri</span>
-                      <span>{vehicle.optiuniExtra.length} opțiuni</span>
                     </div>
+                    {vehicle.perioadaFabricatie && (
+                      <div className="text-sm text-gray-500">
+                        {vehicle.perioadaFabricatie}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex space-x-2">
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {getCategoryName(vehicle.categorieId)}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="space-y-1">
+                    {vehicle.acoperiri.map((acoperire) => (
+                      <div key={acoperire.id} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-gray-900">{acoperire.nume}</span>
+                          <span className="text-green-600 font-medium">{acoperire.pret} RON</span>
+                          {acoperire.linkFisier && (
+                            <a
+                              href={acoperire.linkFisier}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => {
+                              setEditingAcoperire({
+                                ...acoperire,
+                                vehicul_id: vehicle.id
+                              });
+                              setSelectedFile(null);
+                            }}
+                            className="p-1 text-indigo-600 hover:text-indigo-800"
+                            disabled={saving}
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAcoperire(acoperire.id)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                            disabled={saving}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingVehicle(vehicle);
+                      onClick={() => {
+                        setEditingAcoperire({
+                          id: '',
+                          nume: '',
+                          pret: 0,
+                          vehicul_id: vehicle.id
+                        });
+                        setIsAddingAcoperire(true);
+                        setSelectedFile(null);
                       }}
-                      className="p-1 text-indigo-600 hover:text-indigo-800"
+                      className="flex items-center text-xs text-green-600 hover:text-green-800"
                       disabled={saving}
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Plus className="w-3 h-3 mr-1" />
+                      Adaugă acoperire
+                    </button>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="space-y-1">
+                    {vehicle.optiuniExtra.map((optiune) => (
+                      <div key={optiune.id} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-gray-900">{optiune.nume}</span>
+                          <span className="text-green-600 font-medium">{optiune.pret} RON</span>
+                          {optiune.linkFisier && (
+                            <a
+                              href={optiune.linkFisier}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => {
+                              setEditingOptiune({
+                                ...optiune,
+                                vehicul_id: vehicle.id
+                              });
+                              setSelectedFile(null);
+                            }}
+                            className="p-1 text-indigo-600 hover:text-indigo-800"
+                            disabled={saving}
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOptiune(optiune.id)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                            disabled={saving}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        setEditingOptiune({
+                          id: '',
+                          nume: '',
+                          pret: 0,
+                          vehicul_id: vehicle.id
+                        });
+                        setIsAddingOptiune(true);
+                        setSelectedFile(null);
+                      }}
+                      className="flex items-center text-xs text-purple-600 hover:text-purple-800"
+                      disabled={saving}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Adaugă opțiune
+                    </button>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => setEditingVehicle(vehicle)}
+                      className="p-2 text-indigo-600 hover:text-indigo-800"
+                      disabled={saving}
+                    >
+                      <Edit3 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteVehicle(vehicle.id);
-                      }}
-                      className="p-1 text-red-600 hover:text-red-800"
+                      onClick={() => handleDeleteVehicle(vehicle.id)}
+                      className="p-2 text-red-600 hover:text-red-800"
                       disabled={saving}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              </div>
+                </td>
+              </tr>
             ))}
-          </div>
-        </div>
-
-        {/* Vehicle Details */}
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold">
-              {selectedVehicle ? `${selectedVehicle.producator} ${selectedVehicle.model}` : 'Selectează un vehicul'}
-            </h3>
-          </div>
-          
-          {selectedVehicle ? (
-            <div className="p-4 space-y-6">
-              {/* Coverage Section */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-medium">Acoperiri ({selectedVehicle.acoperiri.length})</h4>
-                  <button
-                    onClick={() => {
-                      setEditingAcoperire({
-                        id: '',
-                        nume: '',
-                        pret: 0
-                      });
-                      setIsAddingAcoperire(true);
-                      setSelectedFile(null);
-                    }}
-                    className="flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                    disabled={saving}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Adaugă
-                  </button>
-                </div>
-                
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {selectedVehicle.acoperiri.map((acoperire) => (
-                    <div key={acoperire.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <div className="flex-1">
-                        <span className="font-medium">{acoperire.nume}</span>
-                        <span className="text-green-600 ml-2">{acoperire.pret} RON</span>
-                        {acoperire.linkFisier && (
-                          <a
-                            href={acoperire.linkFisier}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-blue-600 hover:text-blue-800"
-                          >
-                            <ExternalLink className="w-3 h-3 inline" />
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => {
-                            setEditingAcoperire(acoperire);
-                            setSelectedFile(null);
-                          }}
-                          className="p-1 text-indigo-600 hover:text-indigo-800"
-                          disabled={saving}
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAcoperire(acoperire.id)}
-                          className="p-1 text-red-600 hover:text-red-800"
-                          disabled={saving}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Extra Options Section */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-medium">Opțiuni Extra ({selectedVehicle.optiuniExtra.length})</h4>
-                  <button
-                    onClick={() => {
-                      setEditingOptiune({
-                        id: '',
-                        nume: '',
-                        pret: 0
-                      });
-                      setIsAddingOptiune(true);
-                      setSelectedFile(null);
-                    }}
-                    className="flex items-center px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
-                    disabled={saving}
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Adaugă
-                  </button>
-                </div>
-                
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {selectedVehicle.optiuniExtra.map((optiune) => (
-                    <div key={optiune.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <div className="flex-1">
-                        <span className="font-medium">{optiune.nume}</span>
-                        <span className="text-green-600 ml-2">{optiune.pret} RON</span>
-                        {optiune.linkFisier && (
-                          <a
-                            href={optiune.linkFisier}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ml-2 text-blue-600 hover:text-blue-800"
-                          >
-                            <ExternalLink className="w-3 h-3 inline" />
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => {
-                            setEditingOptiune(optiune);
-                            setSelectedFile(null);
-                          }}
-                          className="p-1 text-indigo-600 hover:text-indigo-800"
-                          disabled={saving}
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteOptiune(optiune.id)}
-                          className="p-1 text-red-600 hover:text-red-800"
-                          disabled={saving}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="p-8 text-center text-gray-500">
-              <Car className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>Selectează un vehicul din lista din stânga pentru a vedea detaliile</p>
-            </div>
-          )}
-        </div>
+          </tbody>
+        </table>
       </div>
 
       {/* Vehicle Edit Modal */}
