@@ -25,6 +25,70 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
   const [changingPasswordUser, setChangingPasswordUser] = useState<any>(null);
   const [passwordData, setPasswordData] = useState({ password: '', confirmPassword: '' });
   const [passwordError, setPasswordError] = useState('');
+  const [editingPermissions, setEditingPermissions] = useState<string | null>(null);
+  const [rolePermissions, setRolePermissions] = useState({
+    admin: {
+      calculator: true,
+      viewVehicles: true,
+      editVehicles: true,
+      deleteVehicles: true,
+      viewCategories: true,
+      editCategories: true,
+      deleteCategories: true,
+      viewMaterials: true,
+      editMaterials: true,
+      deleteMaterials: true,
+      importExport: true,
+      manageUsers: true,
+      appSettings: true
+    },
+    editor: {
+      calculator: true,
+      viewVehicles: true,
+      editVehicles: true,
+      deleteVehicles: false,
+      viewCategories: true,
+      editCategories: true,
+      deleteCategories: false,
+      viewMaterials: true,
+      editMaterials: true,
+      deleteMaterials: false,
+      importExport: true,
+      manageUsers: false,
+      appSettings: false
+    },
+    user: {
+      calculator: true,
+      viewVehicles: true,
+      editVehicles: false,
+      deleteVehicles: false,
+      viewCategories: true,
+      editCategories: false,
+      deleteCategories: false,
+      viewMaterials: true,
+      editMaterials: false,
+      deleteMaterials: false,
+      importExport: false,
+      manageUsers: false,
+      appSettings: false
+    }
+  });
+
+  const permissionLabels = {
+    calculator: 'Calculator Oferte',
+    viewVehicles: 'Vizualizare Vehicule',
+    editVehicles: 'Editare Vehicule',
+    deleteVehicles: 'Ștergere Vehicule',
+    viewCategories: 'Vizualizare Categorii',
+    editCategories: 'Editare Categorii',
+    deleteCategories: 'Ștergere Categorii',
+    viewMaterials: 'Vizualizare Materiale',
+    editMaterials: 'Editare Materiale',
+    deleteMaterials: 'Ștergere Materiale',
+    importExport: 'Import/Export Date',
+    manageUsers: 'Gestionare Utilizatori',
+    appSettings: 'Setări Aplicație'
+  };
 
   const handleSave = () => {
     setSaving(true);
@@ -419,9 +483,11 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         user.role === 'admin' 
                           ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-green-100 text-green-800'
+                          : user.role === 'editor'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
                       }`}>
-                        {user.role === 'admin' ? 'Administrator' : 'Utilizator'}
+                        {user.role === 'admin' ? 'Administrator' : user.role === 'editor' ? 'Editor' : 'Utilizator'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -441,6 +507,13 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
+                        <button 
+                          onClick={() => setEditingPermissions(user.role)}
+                          className="text-orange-600 hover:text-orange-900"
+                          title="Configurează permisiuni"
+                        >
+                          <Shield className="w-4 h-4" />
+                        </button>
                         <button 
                           onClick={() => setEditingUser(user)}
                           className="text-indigo-600 hover:text-indigo-900"
@@ -484,25 +557,44 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
           {/* Role Permissions */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 mb-3">Permisiuni Roluri</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-lg border">
                 <h5 className="font-medium text-purple-900 mb-2">Administrator</h5>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>✅ Acces complet la toate funcțiile</li>
-                  <li>✅ Gestionare utilizatori și roluri</li>
-                  <li>✅ Configurare API și webhook-uri</li>
-                  <li>✅ Export/Import date</li>
-                  <li>✅ Setări aplicație</li>
+                  {Object.entries(rolePermissions.admin).map(([key, value]) => (
+                    <li key={key} className="flex items-center">
+                      <span className={value ? 'text-green-600' : 'text-red-600'}>
+                        {value ? '✅' : '❌'}
+                      </span>
+                      <span className="ml-2">{permissionLabels[key as keyof typeof permissionLabels]}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-white p-4 rounded-lg border">
+                <h5 className="font-medium text-blue-900 mb-2">Editor</h5>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  {Object.entries(rolePermissions.editor).map(([key, value]) => (
+                    <li key={key} className="flex items-center">
+                      <span className={value ? 'text-green-600' : 'text-red-600'}>
+                        {value ? '✅' : '❌'}
+                      </span>
+                      <span className="ml-2">{permissionLabels[key as keyof typeof permissionLabels]}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
               <div className="bg-white p-4 rounded-lg border">
                 <h5 className="font-medium text-green-900 mb-2">Utilizator</h5>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>✅ Calculator oferte</li>
-                  <li>✅ Vizualizare vehicule și prețuri</li>
-                  <li>✅ Export date proprii</li>
-                  <li>❌ Modificare prețuri</li>
-                  <li>❌ Gestionare utilizatori</li>
+                  {Object.entries(rolePermissions.user).map(([key, value]) => (
+                    <li key={key} className="flex items-center">
+                      <span className={value ? 'text-green-600' : 'text-red-600'}>
+                        {value ? '✅' : '❌'}
+                      </span>
+                      <span className="ml-2">{permissionLabels[key as keyof typeof permissionLabels]}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -554,6 +646,7 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="user">Utilizator</option>
+                    <option value="editor">Editor</option>
                     <option value="admin">Administrator</option>
                   </select>
                 </div>
@@ -671,6 +764,270 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                   disabled={!passwordData.password || !passwordData.confirmPassword}
                 >
                   Schimbă Parola
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Configuration Modal */}
+      {editingPermissions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                Configurează Permisiuni pentru Rolul: {editingPermissions.charAt(0).toUpperCase() + editingPermissions.slice(1)}
+              </h3>
+              
+              <div className="space-y-6">
+                {/* Calculator Section */}
+                <div className="border-b border-gray-200 pb-4">
+                  <h4 className="font-medium text-gray-900 mb-3">📊 Calculator & Vizualizare</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].calculator}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            calculator: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Calculator Oferte</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Vehicles Section */}
+                <div className="border-b border-gray-200 pb-4">
+                  <h4 className="font-medium text-gray-900 mb-3">🚗 Vehicule</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].viewVehicles}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            viewVehicles: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Vizualizare Vehicule</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].editVehicles}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            editVehicles: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Editare Vehicule</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].deleteVehicles}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            deleteVehicles: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Ștergere Vehicule</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Categories Section */}
+                <div className="border-b border-gray-200 pb-4">
+                  <h4 className="font-medium text-gray-900 mb-3">📁 Categorii</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].viewCategories}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            viewCategories: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Vizualizare Categorii</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].editCategories}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            editCategories: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Editare Categorii</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].deleteCategories}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            deleteCategories: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Ștergere Categorii</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Materials Section */}
+                <div className="border-b border-gray-200 pb-4">
+                  <h4 className="font-medium text-gray-900 mb-3">⚙️ Materiale</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].viewMaterials}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            viewMaterials: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Vizualizare Materiale</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].editMaterials}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            editMaterials: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Editare Materiale</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].deleteMaterials}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            deleteMaterials: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Ștergere Materiale</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Advanced Features Section */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">🔧 Funcții Avansate</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].importExport}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            importExport: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Import/Export Date</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].manageUsers}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            manageUsers: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Gestionare Utilizatori</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={rolePermissions[editingPermissions as keyof typeof rolePermissions].appSettings}
+                        onChange={(e) => setRolePermissions(prev => ({
+                          ...prev,
+                          [editingPermissions]: {
+                            ...prev[editingPermissions as keyof typeof prev],
+                            appSettings: e.target.checked
+                          }
+                        }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Setări Aplicație</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setEditingPermissions(null)}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Anulează
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingPermissions(null);
+                    // Here you would save the permissions to your backend/localStorage
+                    localStorage.setItem('rolePermissions', JSON.stringify(rolePermissions));
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Salvează Permisiuni
                 </button>
               </div>
             </div>
