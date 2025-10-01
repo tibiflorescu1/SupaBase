@@ -449,7 +449,8 @@ function VehicleManagementModal({
       
       setEditingAcoperire(null);
       setSelectedFile(null);
-      setHasChanges(true);
+      // Actualizează datele imediat
+      await onRefetch();
     } catch (error) {
       console.error('Error saving coverage:', error);
       alert('Eroare la salvarea acoperirii');
@@ -463,7 +464,8 @@ function VehicleManagementModal({
       try {
         setSaving(true);
         await onDeleteAcoperire(id);
-        setHasChanges(true);
+        // Actualizează datele imediat
+        await onRefetch();
       } catch (error) {
         console.error('Error deleting coverage:', error);
         alert('Eroare la ștergerea acoperirii');
@@ -488,7 +490,8 @@ function VehicleManagementModal({
       
       setEditingOptiune(null);
       setSelectedFile(null);
-      setHasChanges(true);
+      // Actualizează datele imediat
+      await onRefetch();
     } catch (error) {
       console.error('Error saving extra option:', error);
       alert('Eroare la salvarea opțiunii extra');
@@ -502,7 +505,8 @@ function VehicleManagementModal({
       try {
         setSaving(true);
         await onDeleteOptiuneExtra(id);
-        setHasChanges(true);
+        // Actualizează datele imediat
+        await onRefetch();
       } catch (error) {
         console.error('Error deleting extra option:', error);
         alert('Eroare la ștergerea opțiunii extra');
@@ -513,9 +517,7 @@ function VehicleManagementModal({
   };
 
   const handleSaveAndClose = async () => {
-    if (hasChanges) {
-      await onRefetch();
-    }
+    // Nu mai e nevoie de verificare, datele sunt deja actualizate
     onClose();
   };
 
