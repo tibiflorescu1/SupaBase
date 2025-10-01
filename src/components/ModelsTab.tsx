@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Car, FileText, ExternalLink } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, Save, X, Car, FileText, ExternalLink } from 'lucide-react';
 import type { AppData, Vehicul, Acoperire, OptiuneExtra } from '../hooks/useSupabaseData';
 
 interface ModelsTabProps {
