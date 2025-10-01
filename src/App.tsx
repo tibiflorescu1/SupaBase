@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle, Cog } from 'lucide-react';
+import AuthProvider from './components/AuthProvider';
+import LoginForm from './components/LoginForm';
+import { useAuth } from './hooks/useAuth';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
@@ -11,7 +14,8 @@ import AppSettingsTab from './components/AppSettingsTab';
 
 type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'app-settings';
 
-export default function App() {
+function AppContent() {
+  const { user, profile, loading: authLoading, hasPermission, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
   const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
   const [appSettings, setAppSettings] = useState({
@@ -28,6 +32,45 @@ export default function App() {
     localStorage.setItem('logoUrl', newSettings.logoUrl);
     localStorage.setItem('logoSize', newSettings.logoSize);
   };
+
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Se încarcă aplicația...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated (only in development)
+  if (!user && !import.meta.env.PROD) {
+    return <LoginForm />;
+  }
+
+  // If user is inactive, show message
+  if (profile?.status === 'inactive') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+            <strong className="font-bold">Cont dezactivat!</strong>
+            <div className="mt-2 text-sm">
+              <p>Contul tău a fost dezactivat. Contactează administratorul pentru reactivare.</p>
+            </div>
+          </div>
+          <button
+            onClick={signOut}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Deconectează-te
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const {
     data,
@@ -93,13 +136,13 @@ export default function App() {
   }
 
   const tabs = [
-    { id: 'calculator' as Tab, name: 'Calculator', icon: Calculator },
-    { id: 'models' as Tab, name: 'Modele', icon: Car },
-    { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
-    { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
-    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
-    { id: 'app-settings' as Tab, name: 'Setări App', icon: Cog },
-  ];
+    { id: 'calculator' as Tab, name: 'Calculator', icon: Calculator, permission: 'calculator' },
+    { id: 'models' as Tab, name: 'Modele', icon: Car, permission: 'viewVehicles' },
+    { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen, permission: 'viewCategories' },
+    { id: 'materials' as Tab, name: 'Materiale', icon: Settings, permission: 'viewMaterials' },
+    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet, permission: 'importExport' },
+    { id: 'app-settings' as Tab, name: 'Setări App', icon: Cog, permission: 'appSettings' },
+  ].filter(tab => hasPermission(tab.permission));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,11 +174,19 @@ export default function App() {
             </div>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <span>Utilizator: {profile?.email}</span>
+                <span>Rol: {profile?.role}</span>
                 <span>Vehicule total: {data.vehicule.length}</span>
                 <span>Unice (nume): {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
                 <span>Categorii: {data.categorii.length}</span>
                 <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
               </div>
+              <button
+                onClick={signOut}
+                className="flex items-center space-x-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+              >
+                <span>Deconectează-te</span>
+              </button>
               <button
                 onClick={() => setShowDatabaseStatus(true)}
                 className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
@@ -230,7 +281,7 @@ function TabButton({
   activeTab, 
   setActiveTab 
 }: { 
-  tab: { id: Tab; name: string; icon: React.ComponentType<any> }; 
+  tab: { id: Tab; name: string; icon: React.ComponentType<any>; permission: string }; 
   activeTab: Tab; 
   setActiveTab: (tab: Tab) => void; 
 }) {
@@ -247,5 +298,13 @@ function TabButton({
       <Icon className="w-5 h-5" />
       <span>{tab.name}</span>
     </button>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
