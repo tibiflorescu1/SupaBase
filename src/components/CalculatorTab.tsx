@@ -47,8 +47,6 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
         const category = data.categorii.find(cat => cat.id === categoryId);
         return category ? category.nume : 'Necunoscută';
     };
-
-    // Initialize materials when data loads
     useEffect(() => {
         if (!data.materialePrint.some(m => m.id === selectedPrintId)) {
             setSelectedPrintId(data.materialePrint[0]?.id || '');
@@ -77,7 +75,6 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
             setSelectedProducer('');
         }
     }, [selectedCategory, selectedProducer, uniqueProducers]);
-
     const handleVehiculChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const vehiculId = e.target.value;
         const vehiculSelectat = filteredVehicles.find(v => v.id === vehiculId);
@@ -85,7 +82,7 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
         setSelectedAcoperireId(vehiculSelectat?.acoperiri[0]?.id || '');
         setSelectedOptiuni([]);
         setPrintCuAlb(false);
-    };
+    }
 
     const handleOptiuneToggle = (optiuneId: string) => {
         setSelectedOptiuni(prev =>
@@ -93,23 +90,21 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
             ? prev.filter(id => id !== optiuneId)
             : [...prev, optiuneId]
         );
-    };
+    }
 
     const calcul = useMemo(() => {
         if (!vehicul || !acoperire || !materialPrint || !materialLaminare) {
             return { total: 0, breakdown: [] };
         }
 
-        const breakdown: {label: string, value: number}[] = [];
+        let breakdown: {label: string, value: number}[] = [];
         const pretBazaAcoperire = acoperire.pret;
         breakdown.push({ label: `Preț bază (${acoperire.nume})`, value: pretBazaAcoperire });
 
         const sumaOptiuni = vehicul.optiuniExtra
             .filter(opt => selectedOptiuni.includes(opt.id))
             .reduce((sum, opt) => sum + opt.pret, 0);
-        if (sumaOptiuni > 0) {
-            breakdown.push({ label: 'Opțiuni extra selectate', value: sumaOptiuni });
-        }
+        if(sumaOptiuni > 0) breakdown.push({ label: 'Opțiuni extra selectate', value: sumaOptiuni });
 
         const pretVehicul = pretBazaAcoperire + sumaOptiuni;
 
@@ -124,11 +119,12 @@ export default function CalculatorTab({ data }: CalculatorTabProps) {
         breakdown.push({ label: `Cost laminare (${materialLaminare.nume})`, value: costLaminare });
 
         let costPrintAlb = 0;
+        const setariExtra = data.setariPrintAlb;
         if (printCuAlb && materialPrint.permitePrintAlb) {
-            costPrintAlb = data.setariPrintAlb.tipCalcul === 'suma_fixa'
-                ? data.setariPrintAlb.valoare
-                : (pretVehicul + costPrint) * (data.setariPrintAlb.valoare / 100);
-            breakdown.push({ label: 'Cost extra - Print cu Alb', value: costPrintAlb });
+            costPrintAlb = setariExtra.tipCalcul === 'suma_fixa'
+                ? setariExtra.valoare
+                : (pretVehicul + costPrint) * (setariExtra.valoare / 100);
+             breakdown.push({ label: 'Cost extra - Print cu Alb', value: costPrintAlb });
         }
 
         const totalFinal = pretVehicul + costPrint + costLaminare + costPrintAlb;
