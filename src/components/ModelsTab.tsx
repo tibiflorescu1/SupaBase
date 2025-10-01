@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Eye, Settings2, CreditCard as Edit3, Trash2, Download, Upload, X, Save, ExternalLink, CreditCard as Edit } from 'lucide-react';
+import { Plus, Eye, Settings2, CreditCard as Edit3, Trash2, Download, Upload, X, Save, ExternalLink, CreditCard as Edit, FileText, Link } from 'lucide-react';
 import { AppData, Vehicul, Acoperire, OptiuneExtra } from '../hooks/useSupabaseData';
 
 interface ModelsTabProps {
@@ -89,6 +89,56 @@ export default function ModelsTab({
     return category ? category.nume : 'Necunoscută';
   };
 
+  // Helper function to get file indicators for a vehicle
+  const getFileIndicators = (vehicle: Vehicul) => {
+    const indicators = [];
+    
+    // Check acoperiri for files/links (green icons)
+    vehicle.acoperiri.forEach(acoperire => {
+      if (acoperire.linkFisier) {
+        indicators.push({
+          type: 'acoperire-link',
+          color: 'text-green-600',
+          icon: Link,
+          tooltip: `Link acoperire: ${acoperire.nume}`,
+          url: acoperire.linkFisier
+        });
+      }
+      if (acoperire.fisier) {
+        indicators.push({
+          type: 'acoperire-file',
+          color: 'text-green-600',
+          icon: FileText,
+          tooltip: `Fișier acoperire: ${acoperire.nume} - ${acoperire.fisier.nume}`,
+          url: acoperire.fisier.dataUrl
+        });
+      }
+    });
+    
+    // Check optiuni extra for files/links (magenta icons)
+    vehicle.optiuniExtra.forEach(optiune => {
+      if (optiune.linkFisier) {
+        indicators.push({
+          type: 'optiune-link',
+          color: 'text-pink-600',
+          icon: Link,
+          tooltip: `Link opțiune: ${optiune.nume}`,
+          url: optiune.linkFisier
+        });
+      }
+      if (optiune.fisier) {
+        indicators.push({
+          type: 'optiune-file',
+          color: 'text-pink-600',
+          icon: FileText,
+          tooltip: `Fișier opțiune: ${optiune.nume} - ${optiune.fisier.nume}`,
+          url: optiune.fisier.dataUrl
+        });
+      }
+    });
+    
+    return indicators;
+  };
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -190,7 +240,37 @@ export default function ModelsTab({
                   {vehicle.perioadaFabricatie}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end items-center space-x-2">
+                    {/* File indicators */}
+                    {getFileIndicators(vehicle).map((indicator, index) => {
+                      const IconComponent = indicator.icon;
+                      return (
+                        <div key={index} className="relative group">
+                          <button
+                            onClick={() => {
+                              if (indicator.url.startsWith('http')) {
+                                window.open(indicator.url, '_blank');
+                              } else {
+                                // For base64 files, create download
+                                const link = document.createElement('a');
+                                link.href = indicator.url;
+                                link.download = indicator.tooltip.split(' - ')[1] || 'file';
+                                link.click();
+                              }
+                            }}
+                            className={`p-1 ${indicator.color} hover:opacity-80 transition-opacity`}
+                            title={indicator.tooltip}
+                          >
+                            <IconComponent className="w-4 h-4" />
+                          </button>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                            {indicator.tooltip}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                          </div>
+                        </div>
+                      );
+                    })}
                     <button
                       onClick={() => setEditingVehicle(vehicle)}
                       className="p-2 text-indigo-600 hover:text-indigo-800"
