@@ -307,7 +307,7 @@ export function useSupabaseData() {
           .insert(dbVehicul);
         if (error) throw error;
       }
-      await loadData();
+      // Nu mai facem loadData() automat - doar la cerere
     } catch (err) {
       console.error('Error saving vehicle:', err);
       throw err;
@@ -321,7 +321,7 @@ export function useSupabaseData() {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      await loadData();
+      // Nu mai facem loadData() automat - doar la cerere
     } catch (err) {
       console.error('Error deleting vehicle:', err);
       throw err;
@@ -417,8 +417,7 @@ export function useSupabaseData() {
             }
         }
         
-        // Reload data only once after successful save
-        await loadData();
+        // Return the saved acoperire with real database ID
         return savedAcoperire;
     } catch (err) {
         console.error('Error saving coverage:', err);
@@ -430,7 +429,6 @@ export function useSupabaseData() {
       try {
           const { error } = await supabase.from('acoperiri').delete().eq('id', id);
           if (error) throw error;
-          await loadData();
       } catch (err) {
           console.error('Error deleting coverage:', err);
           throw err;
@@ -526,8 +524,7 @@ export function useSupabaseData() {
             }
         }
         
-        // Reload data only once after successful save
-        await loadData();
+        // Return the saved optiune with real database ID
         return savedOptiune;
     } catch (err) {
         console.error('Error saving extra option:', err);
@@ -539,7 +536,6 @@ export function useSupabaseData() {
       try {
           const { error } = await supabase.from('optiuni_extra').delete().eq('id', id);
           if (error) throw error;
-          await loadData();
       } catch (err) {
           console.error('Error deleting extra option:', err);
           throw err;
