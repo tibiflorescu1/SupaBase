@@ -63,15 +63,14 @@ export function useAuthProvider(): AuthContextType {
       if (session?.user) {
         setUser(session.user);
         loadUserProfile(session.user.id);
-      } else if (isProduction) {
-        // In production, auto-login with default admin
-        autoLogin();
       } else {
-        setLoading(false);
+        // Try auto-login in both dev and production
+        autoLogin();
       }
     }).catch(error => {
       console.error('Error getting session:', error);
-      setLoading(false);
+      // Try auto-login even if there's an error
+      autoLogin();
     });
 
     // Listen for auth changes
@@ -80,7 +79,7 @@ export function useAuthProvider(): AuthContextType {
         if (session?.user) {
           setUser(session.user);
           await loadUserProfile(session.user.id);
-          
+
           // Update last login
           if (event === 'SIGNED_IN') {
             await updateLastLogin(session.user.id);
@@ -89,12 +88,7 @@ export function useAuthProvider(): AuthContextType {
           setUser(null);
           setProfile(null);
           setPermissions([]);
-          if (isProduction) {
-            // In production, try auto-login again
-            autoLogin();
-          } else {
-            setLoading(false);
-          }
+          setLoading(false);
         }
       }
     );
@@ -104,6 +98,8 @@ export function useAuthProvider(): AuthContextType {
 
   const autoLogin = async () => {
     try {
+      console.log('Attempting auto-login with:', autoLoginEmail);
+
       // Try to sign in with default admin credentials
       const { data, error } = await supabase.auth.signInWithPassword({
         email: autoLoginEmail,
@@ -111,9 +107,12 @@ export function useAuthProvider(): AuthContextType {
       });
 
       if (error) {
-        console.warn('Auto-login failed, creating default admin user');
+        console.warn('Auto-login failed:', error.message);
+        console.warn('Attempting to create default admin user...');
         // If login fails, try to create the default admin user
         await createDefaultAdmin();
+      } else {
+        console.log('Auto-login successful!');
       }
     } catch (error) {
       console.error('Auto-login error:', error);
@@ -123,24 +122,39 @@ export function useAuthProvider(): AuthContextType {
 
   const createDefaultAdmin = async () => {
     try {
+      console.log('Creating default admin user...');
+
       // Create default admin user
       const { data, error } = await supabase.auth.signUp({
         email: autoLoginEmail,
-        password: 'admin123'
+        password: 'admin123',
+        options: {
+          emailRedirectTo: undefined,
+          data: {
+            email_confirmed: true
+          }
+        }
       });
 
       if (error) {
-        console.error('Failed to create default admin:', error);
+        console.error('Failed to create default admin:', error.message);
         setLoading(false);
         return;
       }
 
-      // Update the user profile to admin role
       if (data.user) {
+        console.log('Default admin user created, updating role...');
+
+        // Update the user profile to admin role
         await supabase
           .from('user_profiles')
-          .update({ role: 'admin' })
+          .update({ role: 'admin', status: 'active' })
           .eq('id', data.user.id);
+
+        console.log('Admin role updated, attempting login...');
+
+        // Try to login with the newly created user
+        await autoLogin();
       }
     } catch (error) {
       console.error('Error creating default admin:', error);
@@ -155,10 +169,16 @@ export function useAuthProvider(): AuthContextType {
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error('Error loading profile:', profileError);
+        setLoading(false);
+        return;
+      }
+
+      if (!profileData) {
+        console.error('No profile found for user:', userId);
         setLoading(false);
         return;
       }
