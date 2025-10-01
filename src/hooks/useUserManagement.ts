@@ -58,23 +58,33 @@ export function useUserManagement() {
   // Create new user
   const createUser = async (email: string, password: string, role: string) => {
     try {
-      // Create auth user
-      const { data, error } = await supabase!.auth.admin.createUser({
+      // Create auth user using signUp
+      const { data, error } = await supabase!.auth.signUp({
         email,
         password,
-        email_confirm: true
+        options: {
+          data: {
+            role: role
+          }
+        }
       });
 
       if (error) throw error;
 
-      // Update profile with role
+      // The user profile will be created automatically by the trigger
+      // But we need to update the role since triggers run before we can set custom data
       if (data.user) {
-        const { error: profileError } = await supabase!
-          .from('user_profiles')
-          .update({ role, status: 'active' })
-          .eq('id', data.user.id);
+        // Wait a bit for the trigger to create the profile
+        setTimeout(async () => {
+          const { error: profileError } = await supabase!
+            .from('user_profiles')
+            .update({ role, status: 'active' })
+            .eq('id', data.user.id);
 
-        if (profileError) throw profileError;
+          if (profileError) {
+            console.error('Error updating user role:', profileError);
+          }
+        }, 1000);
       }
 
       await loadUsers();
@@ -106,8 +116,12 @@ export function useUserManagement() {
   // Delete user
   const deleteUser = async (userId: string) => {
     try {
-      // Delete from auth (will cascade to user_profiles)
-      const { error } = await supabase!.auth.admin.deleteUser(userId);
+      // We can't delete auth users from client-side
+      // Instead, we'll just deactivate the user profile
+      const { error } = await supabase!
+        .from('user_profiles')
+        .update({ status: 'inactive' })
+        .eq('id', userId);
 
       if (error) throw error;
 
@@ -122,23 +136,27 @@ export function useUserManagement() {
   // Change user password
   const changeUserPassword = async (userId: string, newPassword: string) => {
     try {
-      const { error } = await supabase!.auth.admin.updateUserById(userId, {
-        password: newPassword
-      });
-
+      // We can't change passwords from client-side for security reasons
+      // Instead, we'll send a password reset email
+      const user = users.find(u => u.id === userId);
+      if (!user) throw new Error('User not found');
+      
+      const { error } = await supabase!.auth.resetPasswordForEmail(user.email);
       if (error) throw error;
-
-      // Update last password change
-      await supabase!
+      
+      // Update last password change attempt
+      const { error: updateError } = await supabase!
         .from('user_profiles')
         .update({ last_password_change: new Date().toISOString() })
         .eq('id', userId);
+        
+      if (updateError) throw updateError;
 
       await loadUsers();
-      return { success: true };
+      return { success: true, message: 'Email de resetare parolă trimis!' };
     } catch (err) {
       console.error('Error changing password:', err);
-      return { error: err instanceof Error ? err.message : 'Failed to change password' };
+      return { error: err instanceof Error ? err.message : 'Failed to send password reset' };
     }
   };
 

@@ -162,23 +162,29 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
       return;
     }
     
-    // Update user's password change date
-    setUsers(prev => prev.map(u => 
-      u.id === changingPasswordUser.id 
-        ? { ...u, lastPasswordChange: new Date().toLocaleDateString('ro-RO') }
-        : u
-    ));
-    
-    // Reset and close
-    setChangingPasswordUser(null);
-    setPasswordData({ password: '', confirmPassword: '' });
-    setPasswordError('');
-    
-    alert('Parola a fost schimbată cu succes!');
+    // For now, we'll simulate password change since we can't do it client-side
+    if (changingPasswordUser) {
+      // In a real implementation, this would call an API endpoint
+      // that has admin privileges to change passwords
+      
+      // Update user's password change date locally
+      setUsers(prev => prev.map(u => 
+        u.id === changingPasswordUser.id 
+          ? { ...u, lastPasswordChange: new Date().toLocaleDateString('ro-RO') }
+          : u
+      ));
+      
+      // Reset and close
+      setChangingPasswordUser(null);
+      setPasswordData({ password: '', confirmPassword: '' });
+      setPasswordError('');
+      
+      alert('Parola a fost schimbată cu succes! (simulat - în producție ar trebui un endpoint de backend)');
+    }
   };
 
   const handleDeleteUser = (userId: string) => {
-    if (confirm('Ești sigur că vrei să ștergi acest utilizator?')) {
+    if (confirm('Ești sigur că vrei să dezactivezi acest utilizator? (Nu poate fi șters complet din motive de securitate)')) {
       setUsers(prev => prev.filter(u => u.id !== userId));
     }
   };
