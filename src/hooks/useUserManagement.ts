@@ -15,8 +15,14 @@ export function useUserManagement() {
   // Load all users
   const loadUsers = async () => {
     try {
+      if (!supabase) {
+        setError('Supabase not configured');
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
-      const { data, error } = await supabase!
+      const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .order('created_at', { ascending: false });
@@ -34,7 +40,9 @@ export function useUserManagement() {
   // Load role permissions
   const loadRolePermissions = async () => {
     try {
-      const { data, error } = await supabase!
+      if (!supabase) return;
+      
+      const { data, error } = await supabase
         .from('role_permissions')
         .select('*');
 
@@ -58,8 +66,12 @@ export function useUserManagement() {
   // Create new user
   const createUser = async (email: string, password: string, role: string) => {
     try {
+      if (!supabase) {
+        return { error: 'Supabase not configured' };
+      }
+      
       // Create auth user using signUp
-      const { data, error } = await supabase!.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -76,7 +88,7 @@ export function useUserManagement() {
       if (data.user) {
         // Wait a bit for the trigger to create the profile
         setTimeout(async () => {
-          const { error: profileError } = await supabase!
+          const { error: profileError } = await supabase
             .from('user_profiles')
             .update({ role, status: 'active' })
             .eq('id', data.user.id);
@@ -98,7 +110,11 @@ export function useUserManagement() {
   // Update user
   const updateUser = async (userId: string, updates: Partial<UserProfile>) => {
     try {
-      const { error } = await supabase!
+      if (!supabase) {
+        return { error: 'Supabase not configured' };
+      }
+      
+      const { error } = await supabase
         .from('user_profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', userId);
@@ -116,9 +132,13 @@ export function useUserManagement() {
   // Delete user
   const deleteUser = async (userId: string) => {
     try {
+      if (!supabase) {
+        return { error: 'Supabase not configured' };
+      }
+      
       // We can't delete auth users from client-side
       // Instead, we'll just deactivate the user profile
-      const { error } = await supabase!
+      const { error } = await supabase
         .from('user_profiles')
         .update({ status: 'inactive' })
         .eq('id', userId);
@@ -136,16 +156,20 @@ export function useUserManagement() {
   // Change user password
   const changeUserPassword = async (userId: string, newPassword: string) => {
     try {
+      if (!supabase) {
+        return { error: 'Supabase not configured' };
+      }
+      
       // We can't change passwords from client-side for security reasons
       // Instead, we'll send a password reset email
       const user = users.find(u => u.id === userId);
       if (!user) throw new Error('User not found');
       
-      const { error } = await supabase!.auth.resetPasswordForEmail(user.email);
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email);
       if (error) throw error;
       
       // Update last password change attempt
-      const { error: updateError } = await supabase!
+      const { error: updateError } = await supabase
         .from('user_profiles')
         .update({ last_password_change: new Date().toISOString() })
         .eq('id', userId);
@@ -163,8 +187,12 @@ export function useUserManagement() {
   // Update role permissions
   const updateRolePermissions = async (role: string, permissions: Record<string, boolean>) => {
     try {
+      if (!supabase) {
+        return { error: 'Supabase not configured' };
+      }
+      
       // Delete existing permissions for role
-      await supabase!
+      await supabase
         .from('role_permissions')
         .delete()
         .eq('role', role);
@@ -176,7 +204,7 @@ export function useUserManagement() {
         enabled
       }));
 
-      const { error } = await supabase!
+      const { error } = await supabase
         .from('role_permissions')
         .insert(permissionsArray);
 
@@ -191,8 +219,10 @@ export function useUserManagement() {
   };
 
   useEffect(() => {
-    loadUsers();
-    loadRolePermissions();
+    if (supabase) {
+      loadUsers();
+      loadRolePermissions();
+    }
   }, []);
 
   return {

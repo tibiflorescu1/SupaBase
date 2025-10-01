@@ -50,6 +50,18 @@ function AppContent() {
     return <LoginForm />;
   }
 
+  // In production, if no user and no profile, show loading
+  if (import.meta.env.PROD && !user && !profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Se conectează automat...</p>
+        </div>
+      </div>
+    );
+  }
+
   // If user is inactive, show message
   if (profile?.status === 'inactive') {
     return (

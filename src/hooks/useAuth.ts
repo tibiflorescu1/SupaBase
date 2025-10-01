@@ -52,8 +52,14 @@ export function useAuthProvider(): AuthContextType {
   const autoLoginEmail = import.meta.env.VITE_AUTO_LOGIN_EMAIL || 'admin@vehiclegraphics.com';
 
   useEffect(() => {
+    if (!supabase) {
+      console.error('Supabase not configured');
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
-    supabase?.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
         loadUserProfile(session.user.id);
@@ -63,10 +69,13 @@ export function useAuthProvider(): AuthContextType {
       } else {
         setLoading(false);
       }
+    }).catch(error => {
+      console.error('Error getting session:', error);
+      setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase?.auth.onAuthStateChange(
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
           setUser(session.user);
@@ -88,7 +97,7 @@ export function useAuthProvider(): AuthContextType {
           }
         }
       }
-    ) || { unsubscribe: () => {} };
+    );
 
     return () => subscription.unsubscribe();
   }, []);
@@ -96,7 +105,7 @@ export function useAuthProvider(): AuthContextType {
   const autoLogin = async () => {
     try {
       // Try to sign in with default admin credentials
-      const { data, error } = await supabase!.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: autoLoginEmail,
         password: 'admin123' // Default password for production
       });
@@ -115,7 +124,7 @@ export function useAuthProvider(): AuthContextType {
   const createDefaultAdmin = async () => {
     try {
       // Create default admin user
-      const { data, error } = await supabase!.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: autoLoginEmail,
         password: 'admin123'
       });
@@ -128,7 +137,7 @@ export function useAuthProvider(): AuthContextType {
 
       // Update the user profile to admin role
       if (data.user) {
-        await supabase!
+        await supabase
           .from('user_profiles')
           .update({ role: 'admin' })
           .eq('id', data.user.id);
@@ -142,7 +151,7 @@ export function useAuthProvider(): AuthContextType {
   const loadUserProfile = async (userId: string) => {
     try {
       // Load user profile
-      const { data: profileData, error: profileError } = await supabase!
+      const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
@@ -157,7 +166,7 @@ export function useAuthProvider(): AuthContextType {
       setProfile(profileData);
 
       // Load permissions for user's role
-      const { data: permissionsData, error: permissionsError } = await supabase!
+      const { data: permissionsData, error: permissionsError } = await supabase
         .from('role_permissions')
         .select('permission, enabled')
         .eq('role', profileData.role);
@@ -177,7 +186,7 @@ export function useAuthProvider(): AuthContextType {
 
   const updateLastLogin = async (userId: string) => {
     try {
-      await supabase!
+      await supabase
         .from('user_profiles')
         .update({ last_login: new Date().toISOString() })
         .eq('id', userId);
@@ -187,7 +196,11 @@ export function useAuthProvider(): AuthContextType {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase!.auth.signInWithPassword({
+    if (!supabase) {
+      return { error: { message: 'Supabase not configured' } };
+    }
+    
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
@@ -195,7 +208,9 @@ export function useAuthProvider(): AuthContextType {
   };
 
   const signOut = async () => {
-    await supabase!.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   };
 
   const hasPermission = (permission: string): boolean => {
