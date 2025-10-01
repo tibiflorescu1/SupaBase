@@ -104,8 +104,6 @@ export function useSupabaseData() {
       fileMap.set(f.id, { nume: f.nume, dataUrl: f.data_url });
     });
 
-    console.log('Files loaded:', fisiere.length);
-    console.log('File map:', fileMap);
     // Transform categories
     const transformedCategorii: Categorie[] = categorii.map(c => ({
       id: c.id,
@@ -125,7 +123,6 @@ export function useSupabaseData() {
           linkFisier: a.link_fisier || undefined
         }));
 
-      console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) acoperiri:`, vehiculAcoperiri);
       const vehiculOptiuni = optiuni
         .filter(o => o.vehicul_id === v.id)
         .map(o => ({
@@ -136,7 +133,6 @@ export function useSupabaseData() {
           linkFisier: o.link_fisier || undefined
         }));
 
-      console.log(`Vehicle ${v.producator} ${v.model} (${v.id.substring(0, 8)}) optiuni:`, vehiculOptiuni);
       return {
         id: v.id,
         producator: v.producator,
@@ -187,7 +183,6 @@ export function useSupabaseData() {
     try {
       // Check if Supabase is configured
       if (!supabase) {
-        console.error('Supabase not configured - missing environment variables');
         setError('Configurare Supabase lipsește. Verifică variabilele de mediu.');
         setLoading(false);
         return;
@@ -196,7 +191,6 @@ export function useSupabaseData() {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Loading data from Supabase...');
 
       // Fetch all data in parallel
       const [
@@ -229,16 +223,6 @@ export function useSupabaseData() {
         throw new Error(`Database errors: ${errors.map(e => e?.message).join(', ')}`);
       }
 
-      // Debug logging
-      console.log('📊 Raw data from database:');
-      console.log('- Categorii:', categorii?.length || 0);
-      console.log('- Vehicule:', vehicule?.length || 0);
-      console.log('- Acoperiri:', acoperiri?.length || 0);
-      console.log('- Optiuni:', optiuni?.length || 0);
-      console.log('- Materiale print:', materialePrint?.length || 0);
-      console.log('- Materiale laminare:', materialeLaminare?.length || 0);
-      console.log('- Setari print alb:', setariPrintAlb?.length || 0);
-      console.log('- Fisiere:', fisiere?.length || 0);
 
       // Transform and set data
       const transformedData = await transformData(
@@ -252,31 +236,6 @@ export function useSupabaseData() {
         fisiere || []
       );
 
-      console.log('✅ Transformed data:');
-      console.log('- Final vehicule count:', transformedData.vehicule.length);
-      console.log('- Categorii count:', transformedData.categorii.length);
-      
-      // Check for duplicates
-      const vehiculeMap = new Map();
-      const duplicates = [];
-      transformedData.vehicule.forEach(v => {
-        const key = `${v.producator}_${v.model}`;
-        if (vehiculeMap.has(key)) {
-          duplicates.push({
-            key,
-            existing: vehiculeMap.get(key),
-            duplicate: v
-          });
-        } else {
-          vehiculeMap.set(key, v);
-        }
-      });
-      
-      if (duplicates.length > 0) {
-        console.warn('⚠️ Found duplicate vehicles:', duplicates);
-      }
-      
-      console.log('🎯 Unique vehicles by name:', vehiculeMap.size);
       setData(transformedData);
     } catch (err) {
       console.error('Error loading data from Supabase:', err);
@@ -452,7 +411,6 @@ export function useSupabaseData() {
                     const { data, error: retryError } = await supabase.from('acoperiri').insert(dbAcoperireWithoutLink).select().single();
                     if (retryError) throw retryError;
                     savedAcoperire = data;
-                    console.warn('Saved without link_fisier - database column missing');
                 } else {
                     throw error;
                 }
@@ -560,7 +518,6 @@ export function useSupabaseData() {
                     const { data, error: retryError } = await supabase.from('optiuni_extra').insert(dbOptiuneWithoutLink).select().single();
                     if (retryError) throw retryError;
                     savedOptiune = data;
-                    console.warn('Saved without link_fisier - database column missing');
                 } else {
                     throw error;
                 }

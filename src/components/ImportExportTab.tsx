@@ -98,29 +98,6 @@ export default function ImportExportTab({
       });
     });
 
-    console.log('📤 Export breakdown:');
-    console.log(`- Vehicule în aplicație: ${data.vehicule.length}`);
-    console.log(`- Rânduri VEHICUL în CSV: ${vehicleRows}`);
-    console.log(`- Rânduri ACOPERIRE în CSV: ${acoperireRows}`);
-    console.log(`- Rânduri OPTIUNE_EXTRA în CSV: ${optiuneRows}`);
-    console.log(`- Total rânduri în CSV: ${totalRows}`);
-    
-    // Check for potential duplicates in export
-    const vehicleKeys = new Set();
-    const exportDuplicates = [];
-    data.vehicule.forEach(v => {
-      const key = `${v.producator}_${v.model}`;
-      if (vehicleKeys.has(key)) {
-        exportDuplicates.push(key);
-      } else {
-        vehicleKeys.add(key);
-      }
-    });
-    
-    if (exportDuplicates.length > 0) {
-      console.warn('⚠️ Duplicate vehicles in export:', exportDuplicates);
-    }
-    
     const csv = Papa.unparse(csvData);
     downloadCSV(csv, 'date_complete_vehicule.csv');
   };
@@ -396,7 +373,6 @@ export default function ImportExportTab({
                   // Add link if provided
                   if (linkFisier && linkFisier.startsWith('http')) {
                     acoperireData.linkFisier = linkFisier;
-                    console.log('Adding Google Drive link to acoperire:', linkFisier);
                   }
                   
                   await onSaveAcoperire(acoperireData);
@@ -436,7 +412,6 @@ export default function ImportExportTab({
                   // Add link if provided
                   if (linkFisier && linkFisier.startsWith('http')) {
                     optiuneData.linkFisier = linkFisier;
-                    console.log('Adding Google Drive link to optiune:', linkFisier);
                   }
                   
                   await onSaveOptiuneExtra(optiuneData);
