@@ -45,13 +45,8 @@ function AppContent() {
     );
   }
 
-  // Show login form if not authenticated (only in development)
-  if (!user && !import.meta.env.PROD) {
-    return <LoginForm />;
-  }
-
-  // In production, if no user and no profile, show loading
-  if (import.meta.env.PROD && !user && !profile) {
+  // Disable login form - always show loading while auth is being handled
+  if (!user && !profile) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
