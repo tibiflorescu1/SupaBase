@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle } from 'lucide-react';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle, Cog } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
@@ -7,12 +7,26 @@ import MaterialsTab from './components/MaterialsTab';
 import CalculatorTab from './components/CalculatorTab';
 import ImportExportTab from './components/ImportExportTab';
 import DatabaseStatus from './components/DatabaseStatus';
+import AppSettingsTab from './components/AppSettingsTab';
 
-type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'users';
+type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'app-settings';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
   const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
+  const [appSettings, setAppSettings] = useState({
+    appName: localStorage.getItem('appName') || 'Vehicle Graphics Pricing',
+    appSubtitle: localStorage.getItem('appSubtitle') || 'Sistem de calculare prețuri pentru grafică vehicule',
+    logoUrl: localStorage.getItem('logoUrl') || ''
+  });
+
+  const updateAppSettings = (newSettings: typeof appSettings) => {
+    setAppSettings(newSettings);
+    localStorage.setItem('appName', newSettings.appName);
+    localStorage.setItem('appSubtitle', newSettings.appSubtitle);
+    localStorage.setItem('logoUrl', newSettings.logoUrl);
+  };
+
   const {
     data,
     loading,
@@ -82,6 +96,7 @@ export default function App() {
     { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
     { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
     { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
+    { id: 'app-settings' as Tab, name: 'Setări App', icon: Cog },
   ];
 
   return (
@@ -91,13 +106,24 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <Database className="h-8 w-8 text-blue-600" />
+              {appSettings.logoUrl ? (
+                <img 
+                  src={appSettings.logoUrl} 
+                  alt="Logo" 
+                  className="h-8 w-8 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <Database className={`h-8 w-8 text-blue-600 ${appSettings.logoUrl ? 'hidden' : ''}`} />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Vehicle Graphics Pricing
+                  {appSettings.appName}
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Sistem de calculare prețuri pentru grafică vehicule
+                  {appSettings.appSubtitle}
                 </p>
               </div>
             </div>
@@ -176,6 +202,13 @@ export default function App() {
             onSaveAcoperire={saveAcoperire}
             onSaveOptiuneExtra={saveOptiuneExtra}
             onRefetch={refetch}
+          />
+        )}
+        
+        {activeTab === 'app-settings' && (
+          <AppSettingsTab
+            settings={appSettings}
+            onUpdateSettings={updateAppSettings}
           />
         )}
       </main>
