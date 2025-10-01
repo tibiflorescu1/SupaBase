@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
-import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Users, AlertTriangle, Cog } from 'lucide-react';
-import AuthProvider from './components/AuthProvider';
-import LoginForm from './components/LoginForm';
-import { useAuth } from './hooks/useAuth';
+import { Calculator, Car, Settings, FolderOpen, Database, FileSpreadsheet, Cog, AlertTriangle } from 'lucide-react';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import CategoriesTab from './components/CategoriesTab';
 import ModelsTab from './components/ModelsTab';
@@ -14,8 +11,7 @@ import AppSettingsTab from './components/AppSettingsTab';
 
 type Tab = 'calculator' | 'models' | 'categories' | 'materials' | 'import-export' | 'app-settings';
 
-function AppContent() {
-  const { user, profile, loading: authLoading, hasPermission, signOut } = useAuth();
+function App() {
   const [activeTab, setActiveTab] = useState<Tab>('calculator');
   const [showDatabaseStatus, setShowDatabaseStatus] = useState(false);
   const [appSettings, setAppSettings] = useState({
@@ -32,31 +28,6 @@ function AppContent() {
     localStorage.setItem('logoUrl', newSettings.logoUrl);
     localStorage.setItem('logoSize', newSettings.logoSize);
   };
-
-  // Skip auth checks and load data directly
-  // This allows the app to work even with expired JWT tokens
-
-  // If user is inactive, show message
-  if (profile?.status === 'inactive') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
-            <strong className="font-bold">Cont dezactivat!</strong>
-            <div className="mt-2 text-sm">
-              <p>Contul tău a fost dezactivat. Contactează administratorul pentru reactivare.</p>
-            </div>
-          </div>
-          <button
-            onClick={signOut}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Deconectează-te
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const {
     data,
@@ -122,12 +93,12 @@ function AppContent() {
   }
 
   const tabs = [
-    { id: 'calculator' as Tab, name: 'Calculator', icon: Calculator, permission: 'calculator' },
-    { id: 'models' as Tab, name: 'Modele', icon: Car, permission: 'viewVehicles' },
-    { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen, permission: 'viewCategories' },
-    { id: 'materials' as Tab, name: 'Materiale', icon: Settings, permission: 'viewMaterials' },
-    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet, permission: 'importExport' },
-    { id: 'app-settings' as Tab, name: 'Setări App', icon: Cog, permission: 'appSettings' },
+    { id: 'calculator' as Tab, name: 'Calculator', icon: Calculator },
+    { id: 'models' as Tab, name: 'Modele', icon: Car },
+    { id: 'categories' as Tab, name: 'Categorii', icon: FolderOpen },
+    { id: 'materials' as Tab, name: 'Materiale', icon: Settings },
+    { id: 'import-export' as Tab, name: 'Import/Export', icon: FileSpreadsheet },
+    { id: 'app-settings' as Tab, name: 'Setări App', icon: Cog },
   ];
 
   return (
@@ -138,9 +109,9 @@ function AppContent() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               {appSettings.logoUrl ? (
-                <img 
-                  src={appSettings.logoUrl} 
-                  alt="Logo" 
+                <img
+                  src={appSettings.logoUrl}
+                  alt="Logo"
                   className={`object-contain ${appSettings.logoSize}`}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
@@ -160,21 +131,11 @@ function AppContent() {
             </div>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4 text-sm text-gray-600">
-                {profile?.email && <span>Utilizator: {profile.email}</span>}
-                {profile?.role && <span>Rol: {profile.role}</span>}
                 <span>Vehicule total: {data.vehicule.length}</span>
                 <span>Unice (nume): {new Set(data.vehicule.map(v => `${v.producator}_${v.model}`)).size}</span>
                 <span>Categorii: {data.categorii.length}</span>
                 <span>Materiale: {data.materialePrint.length + data.materialeLaminare.length}</span>
               </div>
-              {user && (
-                <button
-                  onClick={signOut}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                >
-                  <span>Deconectează-te</span>
-                </button>
-              )}
               <button
                 onClick={() => setShowDatabaseStatus(true)}
                 className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
@@ -201,7 +162,7 @@ function AppContent() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'calculator' && <CalculatorTab data={data} />}
-        
+
         {activeTab === 'categories' && (
           <CategoriesTab
             data={data}
@@ -210,7 +171,7 @@ function AppContent() {
             onRefetch={refetch}
           />
         )}
-        
+
         {activeTab === 'models' && (
           <ModelsTab
             data={data}
@@ -223,7 +184,7 @@ function AppContent() {
             onRefetch={refetch}
           />
         )}
-        
+
         {activeTab === 'materials' && (
           <MaterialsTab
             data={data}
@@ -234,7 +195,7 @@ function AppContent() {
             onSaveSetariPrintAlb={saveSetariPrintAlb}
           />
         )}
-        
+
         {activeTab === 'import-export' && (
           <ImportExportTab
             data={data}
@@ -245,7 +206,7 @@ function AppContent() {
             onRefetch={refetch}
           />
         )}
-        
+
         {activeTab === 'app-settings' && (
           <AppSettingsTab
             key="app-settings"
@@ -264,14 +225,14 @@ function AppContent() {
 }
 
 // Helper component for tab buttons
-function TabButton({ 
-  tab, 
-  activeTab, 
-  setActiveTab 
-}: { 
-  tab: { id: Tab; name: string; icon: React.ComponentType<any>; permission: string }; 
-  activeTab: Tab; 
-  setActiveTab: (tab: Tab) => void; 
+function TabButton({
+  tab,
+  activeTab,
+  setActiveTab
+}: {
+  tab: { id: Tab; name: string; icon: React.ComponentType<any> };
+  activeTab: Tab;
+  setActiveTab: (tab: Tab) => void;
 }) {
   const Icon = tab.icon;
   return (
@@ -289,10 +250,4 @@ function TabButton({
   );
 }
 
-export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
-}
+export default App;
