@@ -17,11 +17,14 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<'appearance' | 'users'>('appearance');
   const [users, setUsers] = useState([
-    { id: '1', email: 'admin@example.com', role: 'admin', status: 'active', lastLogin: '2024-01-15' },
-    { id: '2', email: 'user@example.com', role: 'user', status: 'active', lastLogin: '2024-01-14' }
+    { id: '1', email: 'admin@example.com', role: 'admin', status: 'active', lastLogin: '2024-01-15', lastPasswordChange: '2024-01-10' },
+    { id: '2', email: 'user@example.com', role: 'user', status: 'active', lastLogin: '2024-01-14', lastPasswordChange: '2024-01-12' }
   ]);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isAddingUser, setIsAddingUser] = useState(false);
+  const [changingPasswordUser, setChangingPasswordUser] = useState<any>(null);
+  const [passwordData, setPasswordData] = useState({ password: '', confirmPassword: '' });
+  const [passwordError, setPasswordError] = useState('');
 
   const handleSave = () => {
     setSaving(true);
@@ -60,6 +63,12 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
   const handleSaveUser = () => {
     if (!editingUser || !editingUser.email) return;
     
+    // Validate password for new users
+    if (isAddingUser && (!editingUser.password || editingUser.password.length < 6)) {
+      alert('Parola trebuie să aibă cel puțin 6 caractere');
+      return;
+    }
+    
     if (editingUser.id) {
       // Update existing user
       setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
@@ -68,13 +77,40 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
       const newUser = {
         ...editingUser,
         id: Date.now().toString(),
-        lastLogin: 'Niciodată'
+        lastLogin: 'Niciodată',
+        lastPasswordChange: 'La creare'
       };
       setUsers(prev => [...prev, newUser]);
     }
     
     setEditingUser(null);
     setIsAddingUser(false);
+  };
+
+  const handleChangePassword = () => {
+    if (!passwordData.password || passwordData.password.length < 6) {
+      setPasswordError('Parola trebuie să aibă cel puțin 6 caractere');
+      return;
+    }
+    
+    if (passwordData.password !== passwordData.confirmPassword) {
+      setPasswordError('Parolele nu se potrivesc');
+      return;
+    }
+    
+    // Update user's password change date
+    setUsers(prev => prev.map(u => 
+      u.id === changingPasswordUser.id 
+        ? { ...u, lastPasswordChange: new Date().toLocaleDateString('ro-RO') }
+        : u
+    ));
+    
+    // Reset and close
+    setChangingPasswordUser(null);
+    setPasswordData({ password: '', confirmPassword: '' });
+    setPasswordError('');
+    
+    alert('Parola a fost schimbată cu succes!');
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -354,6 +390,9 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ultima Conectare
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ultima Schimbare Parolă
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acțiuni
                   </th>
@@ -397,6 +436,9 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.lastLogin}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.lastPasswordChange || 'Necunoscută'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <button 
@@ -407,11 +449,22 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
+                          onClick={() => {
+                            setChangingPasswordUser(user);
+                            setPasswordData({ password: '', confirmPassword: '' });
+                            setPasswordError('');
+                          }}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Schimbă parola"
+                        >
+                          <Shield className="w-4 h-4" />
+                        </button>
+                        <button 
                           onClick={() => toggleUserStatus(user.id)}
                           className={user.status === 'active' ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}
                           title={user.status === 'active' ? 'Dezactivează utilizator' : 'Activează utilizator'}
                         >
-                          <Shield className="w-4 h-4" />
+                          <Users className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteUser(user.id)}
@@ -517,6 +570,21 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                     <option value="inactive">Inactiv</option>
                   </select>
                 </div>
+                {isAddingUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Parolă
+                    </label>
+                    <input
+                      type="password"
+                      value={editingUser?.password || ''}
+                      onChange={(e) => setEditingUser(prev => prev ? { ...prev, password: e.target.value } : null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Minim 6 caractere"
+                      required
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex justify-end space-x-2 mt-6">
                 <button
@@ -534,6 +602,75 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                   disabled={!editingUser?.email}
                 >
                   {saving ? 'Se salvează...' : 'Salvează'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {changingPasswordUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                Schimbă Parola pentru {changingPasswordUser.email}
+              </h3>
+              {passwordError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 text-sm">{passwordError}</p>
+                </div>
+              )}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Parolă Nouă
+                  </label>
+                  <input
+                    type="password"
+                    value={passwordData.password}
+                    onChange={(e) => {
+                      setPasswordData(prev => ({ ...prev, password: e.target.value }));
+                      setPasswordError('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Minim 6 caractere"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirmă Parola
+                  </label>
+                  <input
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => {
+                      setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }));
+                      setPasswordError('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Repetă parola"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  onClick={() => {
+                    setChangingPasswordUser(null);
+                    setPasswordData({ password: '', confirmPassword: '' });
+                    setPasswordError('');
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Anulează
+                </button>
+                <button
+                  onClick={handleChangePassword}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={!passwordData.password || !passwordData.confirmPassword}
+                >
+                  Schimbă Parola
                 </button>
               </div>
             </div>
