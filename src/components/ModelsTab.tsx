@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, CreditCard as Edit2, Trash2, Save, X, Car, FileText, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Car, FileText, ExternalLink } from 'lucide-react';
 import type { AppData, Vehicul, Acoperire, OptiuneExtra } from '../hooks/useSupabaseData';
 
 interface ModelsTabProps {
@@ -91,10 +91,8 @@ export default function ModelsTab({
         pret: Number(editingAcoperire.pret) || 0
       };
 
-      // Single call to save - no double execution
       await onSaveAcoperire(acoperireData, selectedFile || undefined);
       
-      // Reset form state
       setEditingAcoperire(null);
       setIsAddingAcoperire(false);
       setSelectedFile(null);
@@ -132,10 +130,8 @@ export default function ModelsTab({
         pret: Number(editingOptiune.pret) || 0
       };
 
-      // Single call to save - no double execution
       await onSaveOptiuneExtra(optiuneData, selectedFile || undefined);
       
-      // Reset form state
       setEditingOptiune(null);
       setIsAddingOptiune(false);
       setSelectedFile(null);
