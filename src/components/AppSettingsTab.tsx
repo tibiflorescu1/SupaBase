@@ -6,8 +6,9 @@ interface AppSettingsTabProps {
     appName: string;
     appSubtitle: string;
     logoUrl: string;
+    logoSize: string;
   };
-  onUpdateSettings: (settings: { appName: string; appSubtitle: string; logoUrl: string }) => void;
+  onUpdateSettings: (settings: { appName: string; appSubtitle: string; logoUrl: string; logoSize: string }) => void;
 }
 
 export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettingsTabProps) {
@@ -67,13 +68,13 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
               <img 
                 src={previewLogo || editingSettings.logoUrl} 
                 alt="Logo Preview" 
-                className="h-8 w-8 object-contain"
+                className={`object-contain ${editingSettings.logoSize}`}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
               />
             ) : (
-              <div className="h-8 w-8 bg-blue-600 rounded flex items-center justify-center">
+              <div className={`bg-blue-600 rounded flex items-center justify-center ${editingSettings.logoSize}`}>
                 <span className="text-white text-xs font-bold">DB</span>
               </div>
             )}
@@ -125,6 +126,24 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Setări Logo</h3>
             
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dimensiune Logo
+              </label>
+              <select
+                value={editingSettings.logoSize}
+                onChange={(e) => setEditingSettings(prev => ({ ...prev, logoSize: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="h-6 w-6">Foarte mic (24px)</option>
+                <option value="h-8 w-8">Mic (32px)</option>
+                <option value="h-10 w-10">Mediu (40px)</option>
+                <option value="h-12 w-12">Mare (48px)</option>
+                <option value="h-16 w-16">Foarte mare (64px)</option>
+                <option value="h-20 w-20">Extra mare (80px)</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 URL Logo (link extern)
@@ -186,7 +205,8 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-medium text-blue-900 mb-2">📋 Recomandări Logo:</h4>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li><strong>Dimensiuni:</strong> 32x32px sau 64x64px pentru claritate optimă</li>
+            <li><strong>Dimensiuni:</strong> Folosește imaginea cu rezoluție mare pentru claritate la toate dimensiunile</li>
+            <li><strong>Aspect ratio:</strong> Pătrățel (1:1) funcționează cel mai bine</li>
             <li><strong>Format:</strong> PNG cu fundal transparent sau SVG pentru scalabilitate</li>
             <li><strong>Stil:</strong> Simplu și recognoscibil la dimensiuni mici</li>
             <li><strong>URL extern:</strong> Folosește servicii precum Imgur, Google Drive sau propriul server</li>

@@ -17,7 +17,8 @@ export default function App() {
   const [appSettings, setAppSettings] = useState({
     appName: localStorage.getItem('appName') || 'Vehicle Graphics Pricing',
     appSubtitle: localStorage.getItem('appSubtitle') || 'Sistem de calculare prețuri pentru grafică vehicule',
-    logoUrl: localStorage.getItem('logoUrl') || ''
+    logoUrl: localStorage.getItem('logoUrl') || '',
+    logoSize: localStorage.getItem('logoSize') || 'h-8 w-8'
   });
 
   const updateAppSettings = (newSettings: typeof appSettings) => {
@@ -25,6 +26,7 @@ export default function App() {
     localStorage.setItem('appName', newSettings.appName);
     localStorage.setItem('appSubtitle', newSettings.appSubtitle);
     localStorage.setItem('logoUrl', newSettings.logoUrl);
+    localStorage.setItem('logoSize', newSettings.logoSize);
   };
 
   const {
@@ -110,14 +112,14 @@ export default function App() {
                 <img 
                   src={appSettings.logoUrl} 
                   alt="Logo" 
-                  className="h-8 w-8 object-contain"
+                  className={`object-contain ${appSettings.logoSize}`}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
                   }}
                 />
               ) : null}
-              <Database className={`h-8 w-8 text-blue-600 ${appSettings.logoUrl ? 'hidden' : ''}`} />
+              <Database className={`text-blue-600 ${appSettings.logoSize} ${appSettings.logoUrl ? 'hidden' : ''}`} />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
                   {appSettings.appName}
