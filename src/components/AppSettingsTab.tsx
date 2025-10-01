@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Upload, X, Eye, RotateCcw, Users, Shield, Plus, Trash2, Edit2 } from 'lucide-react';
+import { Save, Upload, X, Eye, RotateCcw, Users, Shield, Plus, Trash2, CreditCard as Edit2 } from 'lucide-react';
 
 interface AppSettingsTabProps {
   settings: {
