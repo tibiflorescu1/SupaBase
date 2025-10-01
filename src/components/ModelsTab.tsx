@@ -592,21 +592,41 @@ function VehicleManagementModal({
                         <div className="flex items-center space-x-3">
                           <h5 className="font-medium text-gray-900">{acoperire.nume}</h5>
                           <span className="text-green-600 font-semibold">{acoperire.pret} RON</span>
+                          {/* File indicators - same as in main table */}
                           {acoperire.linkFisier && (
-                            <a
-                              href={acoperire.linkFisier}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Deschide link"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+                            <div className="relative group">
+                              <button
+                                onClick={() => window.open(acoperire.linkFisier!, '_blank')}
+                                className="p-1 text-green-600 hover:opacity-80 transition-opacity"
+                                title={`Link acoperire: ${acoperire.nume}`}
+                              >
+                                <Link className="w-4 h-4" />
+                              </button>
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                Link acoperire: {acoperire.nume}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                              </div>
+                            </div>
                           )}
                           {acoperire.fisier && (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              📎 {acoperire.fisier.nume}
-                            </span>
+                            <div className="relative group">
+                              <button
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = acoperire.fisier!.dataUrl;
+                                  link.download = acoperire.fisier!.nume;
+                                  link.click();
+                                }}
+                                className="p-1 text-green-600 hover:opacity-80 transition-opacity"
+                                title={`Fișier acoperire: ${acoperire.nume} - ${acoperire.fisier.nume}`}
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                Fișier acoperire: {acoperire.nume} - {acoperire.fisier.nume}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -679,21 +699,41 @@ function VehicleManagementModal({
                         <div className="flex items-center space-x-3">
                           <h5 className="font-medium text-gray-900">{optiune.nume}</h5>
                           <span className="text-green-600 font-semibold">{optiune.pret} RON</span>
+                          {/* File indicators - same as in main table */}
                           {optiune.linkFisier && (
-                            <a
-                              href={optiune.linkFisier}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Deschide link"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+                            <div className="relative group">
+                              <button
+                                onClick={() => window.open(optiune.linkFisier!, '_blank')}
+                                className="p-1 text-pink-600 hover:opacity-80 transition-opacity"
+                                title={`Link opțiune: ${optiune.nume}`}
+                              >
+                                <Link className="w-4 h-4" />
+                              </button>
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                Link opțiune: {optiune.nume}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                              </div>
+                            </div>
                           )}
                           {optiune.fisier && (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              📎 {optiune.fisier.nume}
-                            </span>
+                            <div className="relative group">
+                              <button
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = optiune.fisier!.dataUrl;
+                                  link.download = optiune.fisier!.nume;
+                                  link.click();
+                                }}
+                                className="p-1 text-pink-600 hover:opacity-80 transition-opacity"
+                                title={`Fișier opțiune: ${optiune.nume} - ${optiune.fisier.nume}`}
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                Fișier opțiune: {optiune.nume} - {optiune.fisier.nume}
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
