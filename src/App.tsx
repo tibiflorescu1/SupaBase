@@ -209,6 +209,7 @@ export default function App() {
         
         {activeTab === 'app-settings' && (
           <AppSettingsTab
+            key="app-settings"
             settings={appSettings}
             onUpdateSettings={updateAppSettings}
           />
