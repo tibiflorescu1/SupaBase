@@ -34,6 +34,7 @@ export default function ModelsTab({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedProducer, setSelectedProducer] = useState<string>('');
 
   const selectedVehicle = data.vehicule.find(v => v.id === selectedVehicleId);
 
@@ -43,8 +44,17 @@ export default function ModelsTab({
       vehicle.producator.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
     const categoryMatch = selectedCategory === '' || vehicle.categorieId === selectedCategory;
-    return searchMatch && categoryMatch;
+    const producerMatch = selectedProducer === '' || vehicle.producator === selectedProducer;
+    return searchMatch && categoryMatch && producerMatch;
   });
+
+  // Get unique producers for filter dropdown
+  const uniqueProducers = React.useMemo(() => {
+    const producers = selectedCategory === '' 
+      ? data.vehicule.map(v => v.producator).filter(Boolean)
+      : data.vehicule.filter(v => v.categorieId === selectedCategory).map(v => v.producator).filter(Boolean);
+    return [...new Set(producers)].filter(p => p && p.trim() !== '').sort();
+  }, [data.vehicule, selectedCategory]);
 
   const handleSaveVehicle = async () => {
     if (!editingVehicle || !editingVehicle.producator || !editingVehicle.model) return;
@@ -204,6 +214,18 @@ export default function ModelsTab({
             <option value="">Toate categoriile</option>
             {data.categorii.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.nume}</option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-2">
+          <select
+            value={selectedProducer}
+            onChange={(e) => setSelectedProducer(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Toți producătorii</option>
+            {uniqueProducers.map(producer => (
+              <option key={producer} value={producer}>{producer}</option>
             ))}
           </select>
         </div>
@@ -420,250 +442,6 @@ export default function ModelsTab({
         </div>
       </div>
 
-      {/* Vehicle Edit Modal */}
-      {(editingVehicle || isAddingVehicle) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                {isAddingVehicle ? 'Adaugă Vehicul Nou' : 'Editează Vehicul'}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Producător
-                  </label>
-                  <input
-                    type="text"
-                    value={editingVehicle?.producator || ''}
-                    onChange={(e) => setEditingVehicle(prev => prev ? { ...prev, producator: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Model
-                  </label>
-                  <input
-                    type="text"
-                    value={editingVehicle?.model || ''}
-                    onChange={(e) => setEditingVehicle(prev => prev ? { ...prev, model: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categorie
-                  </label>
-                  <select
-                    value={editingVehicle?.categorieId || ''}
-                    onChange={(e) => setEditingVehicle(prev => prev ? { ...prev, categorieId: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Selectează categoria</option>
-                    {data.categorii.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.nume}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Perioada Fabricație
-                  </label>
-                  <input
-                    type="text"
-                    value={editingVehicle?.perioadaFabricatie || ''}
-                    onChange={(e) => setEditingVehicle(prev => prev ? { ...prev, perioadaFabricatie: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="ex: 2020-2024"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  onClick={() => {
-                    setEditingVehicle(null);
-                    setIsAddingVehicle(false);
-                  }}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  disabled={saving}
-                >
-                  Anulează
-                </button>
-                <button
-                  onClick={handleSaveVehicle}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  disabled={saving}
-                >
-                  {saving ? 'Se salvează...' : 'Salvează'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Coverage Edit Modal */}
-      {(editingAcoperire || isAddingAcoperire) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                {isAddingAcoperire ? 'Adaugă Acoperire Nouă' : 'Editează Acoperire'}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nume Acoperire
-                  </label>
-                  <input
-                    type="text"
-                    value={editingAcoperire?.nume || ''}
-                    onChange={(e) => setEditingAcoperire(prev => prev ? { ...prev, nume: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preț (RON)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={editingAcoperire?.pret || ''}
-                    onChange={(e) => setEditingAcoperire(prev => prev ? { ...prev, pret: parseFloat(e.target.value) || 0 } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Link Fișier (Google Drive)
-                  </label>
-                  <input
-                    type="url"
-                    value={editingAcoperire?.linkFisier || ''}
-                    onChange={(e) => setEditingAcoperire(prev => prev ? { ...prev, linkFisier: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://drive.google.com/file/d/..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sau încarcă fișier
-                  </label>
-                  <input
-                    type="file"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  onClick={() => {
-                    setEditingAcoperire(null);
-                    setIsAddingAcoperire(false);
-                    setSelectedFile(null);
-                  }}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  disabled={saving}
-                >
-                  Anulează
-                </button>
-                <button
-                  onClick={handleSaveAcoperire}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                  disabled={saving || !editingAcoperire?.nume}
-                >
-                  {saving ? 'Se salvează...' : 'Salvează'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Extra Option Edit Modal */}
-      {(editingOptiune || isAddingOptiune) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                {isAddingOptiune ? 'Adaugă Opțiune Extra Nouă' : 'Editează Opțiune Extra'}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nume Opțiune
-                  </label>
-                  <input
-                    type="text"
-                    value={editingOptiune?.nume || ''}
-                    onChange={(e) => setEditingOptiune(prev => prev ? { ...prev, nume: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preț (RON)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={editingOptiune?.pret || ''}
-                    onChange={(e) => setEditingOptiune(prev => prev ? { ...prev, pret: parseFloat(e.target.value) || 0 } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Link Fișier (Google Drive)
-                  </label>
-                  <input
-                    type="url"
-                    value={editingOptiune?.linkFisier || ''}
-                    onChange={(e) => setEditingOptiune(prev => prev ? { ...prev, linkFisier: e.target.value } : null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://drive.google.com/file/d/..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sau încarcă fișier
-                  </label>
-                  <input
-                    type="file"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  onClick={() => {
-                    setEditingOptiune(null);
-                    setIsAddingOptiune(false);
-                    setSelectedFile(null);
-                  }}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  disabled={saving}
-                >
-                  Anulează
-                </button>
-                <button
-                  onClick={handleSaveOptiune}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                  disabled={saving || !editingOptiune?.nume}
-                >
-                  {saving ? 'Se salvează...' : 'Salvează'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Vehicle Edit Modal */}
       {(editingVehicle || isAddingVehicle) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
