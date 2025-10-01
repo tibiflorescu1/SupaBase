@@ -457,12 +457,14 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
           </div>
 
           <div className="space-y-4">
-            {apiKeys.map((apiKey) => (
-              <div key={apiKey.id} className="border border-gray-200 rounded-lg p-4">
+            {apiKeys.map((apiKey) => {
+              const { id, key, name, created, permissions } = apiKey;
+              return (
+              <div key={id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h4 className="font-medium text-gray-900">{apiKey.name}</h4>
-                    <p className="text-sm text-gray-500">Creat: {apiKey.created}</p>
+                    <h4 className="font-medium text-gray-900">{name}</h4>
+                    <p className="text-sm text-gray-500">Creat: {created}</p>
                   </div>
                   <div className="flex space-x-2">
                     <button className="text-indigo-600 hover:text-indigo-800 text-sm">
@@ -477,13 +479,13 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                 <div className="bg-gray-50 rounded-lg p-3 mb-3">
                   <div className="flex items-center justify-between">
                     <code className="text-sm font-mono text-gray-800">
-                      {apiKey.key.substring(0, 20)}...
+                      {key.substring(0, 20)}...
                     </code>
                     <button
-                      onClick={() => copyToClipboard(apiKey.key, apiKey.id)}
+                      onClick={() => copyToClipboard(key, id)}
                       className="flex items-center text-sm text-blue-600 hover:text-blue-800"
                     >
-                      {copiedKey === apiKey.id ? (
+                      {copiedKey === id ? (
                         <>
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Copiat!
@@ -499,7 +501,7 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                  {apiKey.permissions.map((permission) => (
+                  {permissions.map((permission) => (
                     <span
                       key={permission}
                       className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
@@ -509,7 +511,8 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                   ))}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* API Documentation */}
