@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, Upload, X, Eye, RotateCcw, Users, Shield, Key, Webhook, Plus, Trash2, Copy, CheckCircle } from 'lucide-react';
+import { Save, Upload, X, Eye, RotateCcw, Users, Shield, Plus, Trash2, Edit2 } from 'lucide-react';
 
 interface AppSettingsTabProps {
   settings: {
@@ -15,20 +15,13 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
   const [editingSettings, setEditingSettings] = useState(settings);
   const [previewLogo, setPreviewLogo] = useState<string>('');
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<'appearance' | 'users' | 'api' | 'webhooks'>('appearance');
+  const [activeSection, setActiveSection] = useState<'appearance' | 'users'>('appearance');
   const [users, setUsers] = useState([
     { id: '1', email: 'admin@example.com', role: 'admin', status: 'active', lastLogin: '2024-01-15' },
     { id: '2', email: 'user@example.com', role: 'user', status: 'active', lastLogin: '2024-01-14' }
   ]);
-  const [apiKeys, setApiKeys] = useState([
-    { id: '1', name: 'Production API', key: 'vgp_live_1234567890abcdef', permissions: ['read', 'write'], created: '2024-01-10' },
-    { id: '2', name: 'Development API', key: 'vgp_test_abcdef1234567890', permissions: ['read'], created: '2024-01-12' }
-  ]);
-  const [webhooks, setWebhooks] = useState([
-    { id: '1', name: 'Order Updates', url: 'https://example.com/webhook/orders', events: ['order.created', 'order.updated'], status: 'active' },
-    { id: '2', name: 'Price Changes', url: 'https://example.com/webhook/prices', events: ['price.updated'], status: 'inactive' }
-  ]);
-  const [copiedKey, setCopiedKey] = useState<string>('');
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [isAddingUser, setIsAddingUser] = useState(false);
 
   const handleSave = () => {
     setSaving(true);
@@ -64,21 +57,38 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
     setPreviewLogo(url);
   };
 
-  const copyToClipboard = (text: string, keyId: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(keyId);
-    setTimeout(() => setCopiedKey(''), 2000);
+  const handleSaveUser = () => {
+    if (!editingUser || !editingUser.email) return;
+    
+    if (editingUser.id) {
+      // Update existing user
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
+    } else {
+      // Add new user
+      const newUser = {
+        ...editingUser,
+        id: Date.now().toString(),
+        lastLogin: 'Niciodată'
+      };
+      setUsers(prev => [...prev, newUser]);
+    }
+    
+    setEditingUser(null);
+    setIsAddingUser(false);
   };
 
-  const generateApiKey = () => {
-    const newKey = {
-      id: Date.now().toString(),
-      name: 'New API Key',
-      key: `vgp_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
-      permissions: ['read'],
-      created: new Date().toISOString().split('T')[0]
-    };
-    setApiKeys([...apiKeys, newKey]);
+  const handleDeleteUser = (userId: string) => {
+    if (confirm('Ești sigur că vrei să ștergi acest utilizator?')) {
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    }
+  };
+
+  const toggleUserStatus = (userId: string) => {
+    setUsers(prev => prev.map(u => 
+      u.id === userId 
+        ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' }
+        : u
+    ));
   };
 
   return (
@@ -111,28 +121,6 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
           >
             <Users className="w-4 h-4 mr-2" />
             Utilizatori & Roluri
-          </button>
-          <button
-            onClick={() => setActiveSection('api')}
-            className={`flex items-center px-6 py-3 font-medium text-sm ${
-              activeSection === 'api'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Key className="w-4 h-4 mr-2" />
-            API Keys
-          </button>
-          <button
-            onClick={() => setActiveSection('webhooks')}
-            className={`flex items-center px-6 py-3 font-medium text-sm ${
-              activeSection === 'webhooks'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Webhook className="w-4 h-4 mr-2" />
-            Webhooks
           </button>
         </div>
       </div>
@@ -332,7 +320,18 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
         <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900">Gestionare Utilizatori</h3>
-            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <button 
+              onClick={() => {
+                setEditingUser({
+                  id: '',
+                  email: '',
+                  role: 'user',
+                  status: 'active'
+                });
+                setIsAddingUser(true);
+              }}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Adaugă Utilizator
             </button>
@@ -399,10 +398,25 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        <button className="text-indigo-600 hover:text-indigo-900">
+                        <button 
+                          onClick={() => setEditingUser(user)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                          title="Editează utilizator"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => toggleUserStatus(user.id)}
+                          className={user.status === 'active' ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}
+                          title={user.status === 'active' ? 'Dezactivează utilizator' : 'Activează utilizator'}
+                        >
                           <Shield className="w-4 h-4" />
                         </button>
-                        <button className="text-red-600 hover:text-red-900">
+                        <button 
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Șterge utilizator"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -442,198 +456,6 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
         </div>
       )}
 
-      {/* API Keys Section */}
-      {activeSection === 'api' && (
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">API Keys</h3>
-            <button 
-              onClick={generateApiKey}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Generează API Key
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {apiKeys.map((apiKey) => {
-              if (!apiKey || typeof apiKey !== 'object') {
-                return null;
-              }
-              const { id, key, name, created, permissions } = apiKey;
-              return (
-              <div key={id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{name}</h4>
-                    <p className="text-sm text-gray-500">Creat: {created}</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="text-indigo-600 hover:text-indigo-800 text-sm">
-                      Editează
-                    </button>
-                    <button className="text-red-600 hover:text-red-800 text-sm">
-                      Șterge
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                  <div className="flex items-center justify-between">
-                    <code className="text-sm font-mono text-gray-800">
-                      {key.substring(0, 20)}...
-                    </code>
-                    <button
-                      onClick={() => copyToClipboard(key, id)}
-                      className="flex items-center text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      {copiedKey === id ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Copiat!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4 mr-1" />
-                          Copiază
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {permissions.map((permission) => (
-                    <span
-                      key={permission}
-                      className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
-                    >
-                      {permission}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              );
-            })}
-          </div>
-
-          {/* API Documentation */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 mb-2">📚 Documentație API</h4>
-            <div className="text-sm text-blue-800 space-y-2">
-              <p><strong>Base URL:</strong> <code>https://api.vehiclegraphics.com/v1</code></p>
-              <p><strong>Autentificare:</strong> <code>Authorization: Bearer YOUR_API_KEY</code></p>
-              <div className="mt-3">
-                <p><strong>Endpoint-uri disponibile:</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                  <li><code>GET /vehicles</code> - Lista vehicule</li>
-                  <li><code>GET /vehicles/{id}/coverage</code> - Acoperiri vehicul</li>
-                  <li><code>POST /calculate</code> - Calculator preț</li>
-                  <li><code>GET /materials</code> - Lista materiale</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Webhooks Section */}
-      {activeSection === 'webhooks' && (
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Webhooks</h3>
-            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Adaugă Webhook
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {webhooks.map((webhook) => (
-              <div key={webhook.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{webhook.name}</h4>
-                    <p className="text-sm text-gray-500">{webhook.url}</p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      webhook.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {webhook.status === 'active' ? 'Activ' : 'Inactiv'}
-                    </span>
-                    <div className="flex space-x-2">
-                      <button className="text-indigo-600 hover:text-indigo-800 text-sm">
-                        Testează
-                      </button>
-                      <button className="text-indigo-600 hover:text-indigo-800 text-sm">
-                        Editează
-                      </button>
-                      <button className="text-red-600 hover:text-red-800 text-sm">
-                        Șterge
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {webhook.events.map((event) => (
-                    <span
-                      key={event}
-                      className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800"
-                    >
-                      {event}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Webhook Events */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h4 className="font-medium text-purple-900 mb-2">🔔 Evenimente Disponibile</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-purple-800">
-              <div>
-                <p><strong>Vehicule:</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                  <li>vehicle.created</li>
-                  <li>vehicle.updated</li>
-                  <li>vehicle.deleted</li>
-                </ul>
-              </div>
-              <div>
-                <p><strong>Prețuri:</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                  <li>price.updated</li>
-                  <li>material.changed</li>
-                  <li>coverage.modified</li>
-                </ul>
-              </div>
-              <div>
-                <p><strong>Comenzi:</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                  <li>order.created</li>
-                  <li>order.updated</li>
-                  <li>quote.generated</li>
-                </ul>
-              </div>
-              <div>
-                <p><strong>Sistem:</strong></p>
-                <ul className="list-disc list-inside ml-4 space-y-1">
-                  <li>user.login</li>
-                  <li>data.exported</li>
-                  <li>backup.completed</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Current Settings Info */}
       {activeSection === 'appearance' && (
         <div className="bg-gray-50 rounded-lg p-4">
@@ -646,5 +468,76 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
       </div>
       )}
     </div>
+
+      {/* User Edit Modal */}
+      {(editingUser || isAddingUser) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                {isAddingUser ? 'Adaugă Utilizator Nou' : 'Editează Utilizator'}
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editingUser?.email || ''}
+                    onChange={(e) => setEditingUser(prev => prev ? { ...prev, email: e.target.value } : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="utilizator@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rol
+                  </label>
+                  <select
+                    value={editingUser?.role || 'user'}
+                    onChange={(e) => setEditingUser(prev => prev ? { ...prev, role: e.target.value } : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="user">Utilizator</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editingUser?.status || 'active'}
+                    onChange={(e) => setEditingUser(prev => prev ? { ...prev, status: e.target.value } : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="active">Activ</option>
+                    <option value="inactive">Inactiv</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  onClick={() => {
+                    setEditingUser(null);
+                    setIsAddingUser(false);
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Anulează
+                </button>
+                <button
+                  onClick={handleSaveUser}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={!editingUser?.email}
+                >
+                  {saving ? 'Se salvează...' : 'Salvează'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
   );
 }
