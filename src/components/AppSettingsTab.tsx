@@ -458,6 +458,9 @@ export default function AppSettingsTab({ settings, onUpdateSettings }: AppSettin
 
           <div className="space-y-4">
             {apiKeys.map((apiKey) => {
+              if (!apiKey || typeof apiKey !== 'object') {
+                return null;
+              }
               const { id, key, name, created, permissions } = apiKey;
               return (
               <div key={id} className="border border-gray-200 rounded-lg p-4">
