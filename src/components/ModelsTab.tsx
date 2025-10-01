@@ -247,12 +247,6 @@ export default function ModelsTab({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Vehicul
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Categorie
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Perioada
-              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Acțiuni
               </th>
@@ -342,62 +336,6 @@ export default function ModelsTab({
                     {vehicle.optiuniExtra.map((optiune) => (
                       <div key={optiune.id} className="flex items-center justify-between text-sm">
                         <div className="flex items-center space-x-2">
-                          <span className="text-gray-900">{optiune.nume}</span>
-                          <span className="text-green-600 font-medium">{optiune.pret} RON</span>
-                          {optiune.linkFisier && (
-                            <a
-                              href={optiune.linkFisier}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
-                        </div>
-                        <div className="flex space-x-1">
-                          <button
-                            onClick={() => {
-                              setEditingOptiune({
-                                ...optiune,
-                                vehicul_id: vehicle.id
-                              });
-                              setSelectedFile(null);
-                            }}
-                            className="p-1 text-indigo-600 hover:text-indigo-800"
-                            disabled={saving}
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteOptiune(optiune.id)}
-                            className="p-1 text-red-600 hover:text-red-800"
-                            disabled={saving}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => {
-                        setEditingOptiune({
-                          id: '',
-                          nume: '',
-                          pret: 0,
-                          vehicul_id: vehicle.id
-                        });
-                        setIsAddingOptiune(true);
-                        setSelectedFile(null);
-                      }}
-                      className="flex items-center text-xs text-purple-600 hover:text-purple-800"
-                      disabled={saving}
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Adaugă opțiune
-                    </button>
-                  </div>
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
                     <button
